@@ -8,6 +8,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 import easyocr
 import spacy
@@ -20,6 +21,13 @@ from typing import List
 from app.database import SessionLocal, engine, Base
 from app.models import MedicalReport, User, Prescription, TestRequest, LabTest
 from app.analyzer import analyze_medical_values
+from app.models import Patient
+
+from sqlalchemy import text
+from fastapi import HTTPException, Depends
+from sqlalchemy.orm import Session
+
+from app.models import Patient, TestRequest, Prescription
 
 from app.pharmacy_admin.models_pharmacy import (
     Medicine, Stock, Transaction,
@@ -190,6 +198,58 @@ def delete_user(
 
     return {"message": "User deleted successfully"}
 
+# --------------------------------------------------------------
+# ADMIN — DELETE PATIENT
+# --------------------------------------------------------------
+
+@app.delete("/delete-patient/{patient_id}")
+def delete_patient(patient_id: str, db: Session = Depends(get_db)):
+    try:
+        # 🔍 STEP 1 — Find patient (MedicalReport)
+        target = None
+        reports = db.query(MedicalReport).all()
+
+        for r in reports:
+            st = r.json_data.get("structured_data", {}) if isinstance(r.json_data, dict) else {}
+            if st.get("Patient ID") == patient_id:
+                target = r
+                break
+
+        if not target:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        real_id = target.id
+
+        # 🔥 STEP 2 — DELETE IN CORRECT ORDER (VERY IMPORTANT)
+
+        # 1️⃣ Delete bill items (deepest child)
+        db.execute(text("""
+            DELETE FROM bill_items 
+            WHERE bill_id IN (
+                SELECT id FROM bills WHERE patient_id = :pid
+            )
+        """), {"pid": real_id})
+
+        # 2️⃣ Delete bills
+        db.execute(text("DELETE FROM bills WHERE patient_id = :pid"), {"pid": real_id})
+
+        # 3️⃣ Delete test requests
+        db.execute(text("DELETE FROM test_requests WHERE patient_id = :pid"), {"pid": real_id})
+
+        # 4️⃣ Delete prescriptions
+        db.execute(text("DELETE FROM prescriptions WHERE patient_id = :pid"), {"pid": real_id})
+
+        # 5️⃣ Delete main patient record
+        db.execute(text("DELETE FROM medical_reports WHERE id = :pid"), {"pid": real_id})
+
+        db.commit()
+
+        return {"message": "Patient deleted successfully"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # --------------------------------------------------------------
 # OCR SYSTEM
 # --------------------------------------------------------------
@@ -583,7 +643,6 @@ def pay_tests(data: dict = Body(...), db: Session = Depends(get_db)):
         items.append({
             "medicine_id": 0,
             "medicine_name": t.test_name,
-            "batch_no": "",
             "qty": 1,
             "price": price,
             "subtotal": price
@@ -601,7 +660,8 @@ def pay_tests(data: dict = Body(...), db: Session = Depends(get_db)):
         total_amount=total,
         discount=discount,
         net_total=net_total,
-        status="paid"
+        status="paid",
+        payment_method=data.get("payment_method", "cash")
     )
 
     db.add(bill)
@@ -615,7 +675,6 @@ def pay_tests(data: dict = Body(...), db: Session = Depends(get_db)):
             bill_id=bill.id,
             medicine_id=0,
             medicine_name=it["medicine_name"],
-            batch_no="",
             qty=1,
             price=it["price"],
             subtotal=it["subtotal"]
@@ -810,7 +869,6 @@ def get_patient_bills(patient_id: int, db: Session = Depends(get_db)):
                 "items": [
                     {
                         "medicine_id": i.medicine_id,
-                        "batch_no": i.batch_no,
                         "qty": i.qty,
                         "price": i.price,
                         "subtotal": i.subtotal
@@ -851,7 +909,6 @@ def get_invoice(bill_id: int, db: Session = Depends(get_db)):
 
         items.append({
             "name": name,
-            "batch_no": i.batch_no,
             "qty": i.qty,
             "price": i.price,
             "subtotal": i.subtotal
@@ -864,7 +921,8 @@ def get_invoice(bill_id: int, db: Session = Depends(get_db)):
             "total": bill.total_amount,
             "discount": bill.discount,
             "net_total": bill.net_total,
-            "status": bill.status
+            "status": bill.status,
+            "payment_method": bill.payment_method
         },
         "items": items,
         "patient": {
@@ -876,7 +934,6 @@ def get_invoice(bill_id: int, db: Session = Depends(get_db)):
             "address": st.get("Address", "Not Provided")
         }
     }
-
 
 # --------------------------------------------------------------
 # INCLUDE PHARMACY-ADMIN ROUTES
