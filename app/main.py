@@ -8,10 +8,11 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 
 from jose import jwt, JWTError
-from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.auth import pwd_context, verify_password, hash_password, create_access_token
 
 import easyocr
 import spacy
@@ -52,11 +53,14 @@ with engine.connect() as _conn:
     except Exception:
         pass  # Column already exists
 
-SECRET_KEY = "supersecretkey"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 120
+# Add bill_type column to bills if it doesn't exist (migration)
+with engine.connect() as _conn:
+    try:
+        _conn.execute(text("ALTER TABLE bills ADD COLUMN bill_type VARCHAR DEFAULT 'pharmacy'"))
+        _conn.commit()
+    except Exception:
+        pass  # Column already exists
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # APP
@@ -81,18 +85,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-def hash_password(pwd):
-    return pwd_context.hash(pwd)
-
-def verify_password(plain, hashed):
-    return pwd_context.verify(plain, hashed)
-
-def create_access_token(data: dict, expires_delta=None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     exc = HTTPException(status_code=401, detail="Invalid or expired token")
@@ -511,7 +503,7 @@ def register_patient(data: dict = Body(...), db: Session = Depends(get_db)):
 @app.get("/patients/")
 def get_all_patients(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
 
-    if user.role not in ["doctor", "pharmacy", "receptionist", "counter", "admin"]:
+    if user.role not in ["doctor", "pharmacy", "receptionist", "counter", "admin", "technician"]:
         raise HTTPException(403, "Access denied")
 
     rows = db.query(MedicalReport).filter(MedicalReport.is_deleted != True).all()
@@ -760,6 +752,7 @@ def pay_tests(data: dict = Body(...), db: Session = Depends(get_db)):
         net_total=net_total,
         status="paid",
         payment_method=payment_method,
+        bill_type="lab",
     )
     db.add(bill)
     db.commit()
@@ -810,7 +803,7 @@ def consultation_bill(data: dict = Body(...), db: Session = Depends(get_db)):
 
     bill = Bill(patient_id=patient_id, total_amount=amount, discount=0,
                 net_total=amount, status="paid", payment_method=payment_method,
-                created_at=datetime.utcnow())
+                bill_type="counter", created_at=datetime.utcnow())
     db.add(bill); db.commit(); db.refresh(bill)
     db.add(BillItem(bill_id=bill.id, medicine_id=0, qty=1, price=amount, description=description))
     db.commit()
@@ -1043,7 +1036,10 @@ def get_ai_reports(patient_id: int, db: Session = Depends(get_db)):
 @app.get("/billing/patient/{patient_id}")
 def get_patient_bills(patient_id: int, db: Session = Depends(get_db)):
 
-    rows = db.query(Bill).filter(Bill.patient_id == patient_id).all()
+    rows = db.query(Bill).filter(
+        Bill.patient_id == patient_id,
+        Bill.bill_type == "lab"
+    ).all()
 
     return {
         "bills": [
@@ -1068,6 +1064,49 @@ def get_patient_bills(patient_id: int, db: Session = Depends(get_db)):
         ]
     }
 
+
+# --------------------------------------------------------------
+# ADMIN — ALL BILLS FOR PATIENT (all types)
+# --------------------------------------------------------------
+
+@app.get("/admin/billing/patient/{patient_id}")
+def admin_get_patient_bills(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(403, "Access denied")
+
+    rows = db.query(Bill).filter(
+        Bill.patient_id == patient_id
+    ).order_by(Bill.id.asc()).all()
+
+    return {
+        "bills": [
+            {
+                "bill_id":        b.id,
+                "date":           b.created_at.strftime("%Y-%m-%d %H:%M") if b.created_at else "",
+                "total":          b.total_amount,
+                "discount":       b.discount,
+                "net_total":      b.net_total,
+                "status":         b.status,
+                "payment_method": b.payment_method,
+                "bill_type":      b.bill_type or "counter",
+                "items": [
+                    {
+                        "medicine_id": i.medicine_id,
+                        "name":        i.description or "",
+                        "qty":         i.qty,
+                        "price":       i.price,
+                        "subtotal":    (i.qty or 0) * (i.price or 0),
+                    }
+                    for i in b.items
+                ],
+            }
+            for b in rows
+        ]
+    }
 
 # --------------------------------------------------------------
 # BILLING — INVOICE DETAILS
