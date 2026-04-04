@@ -5,7 +5,10 @@ from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import User
-from app.config import SECRET_KEY, ALGORITHM
+
+# Same key/algorithm as in main.py
+SECRET_KEY = "supersecretkey"
+ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -23,7 +26,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email   = payload.get("sub")
+        email = payload.get("sub")
         if not email:
             raise credentials_exception
     except JWTError:
@@ -36,7 +39,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 # ------------------------------------------------------------
-# MULTI-ROLE VALIDATOR
+# NEW: MULTI-ROLE VALIDATOR  (PERMANENT FIX)
 # ------------------------------------------------------------
 def require_roles(*roles):
     def checker(user: User = Depends(get_current_user)):
@@ -44,3 +47,4 @@ def require_roles(*roles):
             raise HTTPException(status_code=403, detail=f"Access denied for role: {user.role}")
         return user
     return checker
+

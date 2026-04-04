@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Medical Report Analyzer</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 60px;
+            margin: 0;
+        }
+        h1 {
+            color: #1e293b;
+            font-size: 28px;
+        }
+        .upload-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            width: 400px;
+            text-align: center;
+        }
+        input[type="file"] {
+            width: 100%;
+            margin-top: 10px;
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        button {
+            background-color: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 12px 18px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1e40af;
+        }
+        .result-card {
+            background: #fff;
+            margin-top: 25px;
+            padding: 18px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 400px;
+            text-align: left;
+        }
+        .result-card h3 {
+            margin: 0;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Medical Report Analyzer</h1>
+    <div class="upload-card">
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="files" accept="image/*" multiple required />
+            <button type="submit">Upload & Analyze</button>
+        </form>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const files = document.getElementById('fileInput').files;
+            if (!files.length) {
+                alert('Please select one or more reports.');
+                return;
+            }
+
+            const formData = new FormData();
+            for (const file of files) formData.append('files', file);
+
+            document.getElementById('output').innerHTML = '<p>⏳ Analyzing reports, please wait...</p>';
+
+            try {
+                const res = await fetch('/analyze-reports/', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                const data = await res.json();
+
+                document.getElementById('output').innerHTML = `
+                    <h2>Results</h2>
+                    ${data.results.map(r => `
+                        <div class="result-card">
+                            <h3>${r.structured_data["Patient Name"]}</h3>
+                            <p><b>Age:</b> ${r.structured_data["Age"]}</p>
+                            <p><b>Sex:</b> ${r.structured_data["Sex"]}</p>
+                            <p><b>Haemoglobin:</b> ${r.structured_data["Haemoglobin"]}</p>
+                            <p><b>WBC Count:</b> ${r.structured_data["WBC Count"]}</p>
+                            <p><b>RBC Count:</b> ${r.structured_data["RBC Count"]}</p>
+                            <p><b>PCV (Hematocrit):</b> ${r.structured_data["PCV (Hematocrit)"]}</p>
+                            <p><i>💾 Saved as:</i> ${r.json_saved_as}</p>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (err) {
+                document.getElementById('output').innerHTML = `<p style="color:red;">❌ Error: ${err.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
