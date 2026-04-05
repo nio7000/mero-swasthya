@@ -693,7 +693,7 @@ def get_pending_tests(query: str, db: Session = Depends(get_db)):
 
     return {"pending_tests": result}
 
-
+# minor layout fix
 # --------------------------------------------------------------
 # COUNTER — PAY & GENERATE BILL
 # --------------------------------------------------------------
