@@ -1,16 +1,17 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login.jsx";
-import DoctorPortal from "./pages/DoctorPortal.jsx";
-import PharmacyPortal from "./pages/PharmacyPortal.jsx";
-import PharmacyAdminPage from "./pages/PharmacyAdminPage.jsx";
-import TechnicianPortal from "./pages/TechnicianPortal.jsx";
-import AdminPortal from "./pages/AdminPortal.jsx";
-import ReceptionistPortal from "./pages/ReceptionistPortal.jsx";
-import CounterPortal from "./pages/CounterPortal.jsx";
-import InvoicePage from "./pages/InvoicePage.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import { ROLES } from "./constants";
+
+import Login             from "./views/Login.jsx";
+import DoctorPortal      from "./views/DoctorPortal.jsx";
+import PharmacyPortal    from "./views/PharmacyPortal.jsx";
+import PharmacyAdminPage from "./views/PharmacyAdminPage.jsx";
+import TechnicianPortal  from "./views/TechnicianPortal.jsx";
+import AdminPortal       from "./views/AdminPortal.jsx";
+import ReceptionistPortal from "./views/ReceptionistPortal.jsx";
+import CounterPortal     from "./views/CounterPortal.jsx";
+import InvoicePage       from "./views/InvoicePage.jsx";
+import ProtectedRoute    from "./components/ProtectedRoute.jsx";
+import { ROLES }         from "./constants";
 
 export default function App() {
   return (
