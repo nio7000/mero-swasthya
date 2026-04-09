@@ -7,6 +7,7 @@ import { fmtDate, fmtBillDate, todayISO } from "../utils/date";
 import { currency } from "../utils/format";
 import { STORAGE_KEYS, HOSPITAL_NAME, HOSPITAL_ADDR, HOSPITAL_PHONE } from "../constants";
 import Topbar from "../components/Topbar";
+import PatientSearchInput from "../components/PatientSearchInput";
 
 /* ── helpers ── */
 const byRecent    = (l) => [...l].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
@@ -143,7 +144,7 @@ const InvoiceCard = ({ invoiceData, selectedReport, paymentMethod }) => {
             <tbody>
               {inv.items.map((item,i) => (
                 <tr key={i}>
-                  <td>{item.medicine_name}</td>
+                  <td>{item.description || item.medicine_name}</td>
                   <td>{item.qty}</td>
                   <td>Rs. {item.price}</td>
                   <td style={{textAlign:"right"}}>Rs. {item.subtotal}</td>
@@ -269,11 +270,11 @@ export default function PharmacyPortal() {
   useEffect(() => {
     (async () => {
       try {
-        const [rr, mr] = await Promise.all([
-          apiClient.get("/reports/"),
+        const [pr, mr] = await Promise.all([
+          apiClient.get("/patients/"),
           apiClient.get("/pharmacy-admin/medicines/"),
         ]);
-        setReports(rr.data.reports || []);
+        setReports(pr.data || []);
         setMedicines(mr.data.medicines || []);
       } catch { /* silent */ }
     })();
@@ -294,7 +295,7 @@ export default function PharmacyPortal() {
 
   const handleSelectPatient = async (r) => {
     setSelectedReport(r);
-    setPatientName(r.structured_data?.["Patient Name"]||"");
+    setPatientName(r.name || r.structured_data?.["Patient Name"] || "");
     setShowSugg(false);
     try {
       const [pr, br] = await Promise.all([
@@ -464,23 +465,12 @@ export default function PharmacyPortal() {
             <div className="panel-heading">Patient Lookup</div>
             <div className="panel-sub">Search a patient to view prescriptions and bill history</div>
             <div className="search-wrap">
-              <input
-                className="search-input"
-                placeholder="Search by patient name…"
+              <PatientSearchInput
+                patients={reports}
                 value={patientName}
-                onChange={e => { setPatientName(e.target.value); setShowSugg(true); }}
-                onBlur={() => setTimeout(() => setShowSugg(false), 160)}
+                onChange={setPatientName}
+                onSelect={handleSelectPatient}
               />
-              {showSugg && patientName && filteredReports.length > 0 && (
-                <div className="drop">
-                  {filteredReports.map((r,i) => (
-                    <div key={i} className="drop-item" onMouseDown={() => handleSelectPatient(r)}>
-                      <span style={{fontWeight:600}}>{r.structured_data?.["Patient Name"]}</span>
-                      <span style={{color:"var(--text3)",fontSize:13,marginLeft:10}}>{r.structured_data?.["Patient ID"]}{r.structured_data?.["Age"]?` · ${r.structured_data["Age"]}y`:""}{r.structured_data?.["Sex"]?` · ${r.structured_data["Sex"]}`:""}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 

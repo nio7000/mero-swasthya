@@ -1,4 +1,3 @@
-# app/auth_utils.py
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -9,7 +8,7 @@ from app.config import SECRET_KEY, ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-# ------------------ DB SESSION ------------------
+
 def get_db():
     db = SessionLocal()
     try:
@@ -17,30 +16,25 @@ def get_db():
     finally:
         db.close()
 
-# ------------------ CURRENT USER ------------------
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(status_code=401, detail="Invalid or expired token")
 
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    exc = HTTPException(status_code=401, detail="Invalid or expired token")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email   = payload.get("sub")
+        email = payload.get("sub")
         if not email:
-            raise credentials_exception
+            raise exc
     except JWTError:
-        raise credentials_exception
-
+        raise exc
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        raise credentials_exception
+        raise exc
     return user
 
 
-# ------------------------------------------------------------
-# MULTI-ROLE VALIDATOR
-# ------------------------------------------------------------
 def require_roles(*roles):
     def checker(user: User = Depends(get_current_user)):
         if user.role not in roles:
-            raise HTTPException(status_code=403, detail=f"Access denied for role: {user.role}")
+            raise HTTPException(403, f"Access denied for role: {user.role}")
         return user
     return checker

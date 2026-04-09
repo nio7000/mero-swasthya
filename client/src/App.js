@@ -2,6 +2,10 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Login             from "./views/Login.jsx";
+import Signup            from "./views/Signup.jsx";
+import ForgotPassword    from "./views/ForgotPassword.jsx";
+import ChangePassword    from "./views/ChangePassword.jsx";
+import SetupAccount      from "./views/SetupAccount.jsx";
 import DoctorPortal      from "./views/DoctorPortal.jsx";
 import PharmacyPortal    from "./views/PharmacyPortal.jsx";
 import PharmacyAdminPage from "./views/PharmacyAdminPage.jsx";
@@ -11,46 +15,25 @@ import ReceptionistPortal from "./views/ReceptionistPortal.jsx";
 import CounterPortal     from "./views/CounterPortal.jsx";
 import InvoicePage       from "./views/InvoicePage.jsx";
 import ProtectedRoute    from "./components/ProtectedRoute.jsx";
-import { ROLES }         from "./constants";
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/"                element={<Login />} />
+        <Route path="/register"        element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/setup-account"   element={<SetupAccount />} />
 
-        <Route path="/doctorportal" element={
-          <ProtectedRoute element={<DoctorPortal />} allowedRoles={[ROLES.DOCTOR, ROLES.ADMIN]} />
-        } />
-
-        <Route path="/pharmacy" element={
-          <ProtectedRoute element={<PharmacyPortal />} allowedRoles={[ROLES.PHARMACY, ROLES.ADMIN]} />
-        } />
-
-        <Route path="/pharmacy-admin" element={
-          <ProtectedRoute element={<PharmacyAdminPage />} allowedRoles={[ROLES.PHARMACY_ADMIN, ROLES.ADMIN]} />
-        } />
-
-        <Route path="/dashboard" element={
-          <ProtectedRoute element={<TechnicianPortal />} allowedRoles={[ROLES.TECHNICIAN, ROLES.ADMIN]} />
-        } />
-
-        <Route path="/receptionist" element={
-          <ProtectedRoute element={<ReceptionistPortal />} allowedRoles={[ROLES.RECEPTIONIST, ROLES.ADMIN]} />
-        } />
-
-        <Route path="/counter" element={
-          <ProtectedRoute element={<CounterPortal />} allowedRoles={[ROLES.COUNTER, ROLES.ADMIN]} />
-        } />
-
-        <Route path="/invoice" element={
-          <ProtectedRoute element={<InvoicePage />}
-            allowedRoles={[ROLES.COUNTER, ROLES.PHARMACY, ROLES.PHARMACY_ADMIN, ROLES.ADMIN, ROLES.DOCTOR]} />
-        } />
-
-        <Route path="/admin" element={
-          <ProtectedRoute element={<AdminPortal />} allowedRoles={[ROLES.ADMIN]} />
-        } />
+        <Route path="/doctorportal"  element={<ProtectedRoute element={<DoctorPortal />} />} />
+        <Route path="/pharmacy"      element={<ProtectedRoute element={<PharmacyPortal />} />} />
+        <Route path="/pharmacy-admin" element={<ProtectedRoute element={<PharmacyAdminPage />} />} />
+        <Route path="/dashboard"     element={<ProtectedRoute element={<TechnicianPortal />} />} />
+        <Route path="/receptionist"  element={<ProtectedRoute element={<ReceptionistPortal />} />} />
+        <Route path="/counter"       element={<ProtectedRoute element={<CounterPortal />} />} />
+        <Route path="/invoice"       element={<ProtectedRoute element={<InvoicePage />} />} />
+        <Route path="/admin"         element={<ProtectedRoute element={<AdminPortal />} />} />
 
         <Route path="*" element={
           <div style={{ textAlign: "center", marginTop: "20vh", fontFamily: "var(--font)" }}>

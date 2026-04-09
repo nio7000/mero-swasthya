@@ -7,6 +7,7 @@ import { fmtBillDate, todayISO } from "../utils/date";
 import { currency, calcDiscount } from "../utils/format";
 import { STORAGE_KEYS, HOSPITAL_NAME, HOSPITAL_ADDR, HOSPITAL_PHONE, MAX_DISCOUNT } from "../constants";
 import Topbar from "../components/Topbar";
+import PatientSearchInput from "../components/PatientSearchInput";
 
 const CSS = `
 .bill-card{border:1.5px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;background:var(--surface2);}
@@ -74,7 +75,7 @@ const InvoiceCard = ({ invoiceData, selectedPatient, paymentMethod }) => {
             <tbody>
               {items.map((item,i) => (
                 <tr key={i}>
-                  <td>{item.name || item.test_name || "Lab Test"}</td>
+                  <td>{item.description || item.name || item.test_name || "Lab Test"}</td>
                   <td>{item.qty || 1}</td>
                   <td>{currency(item.price)}</td>
                   <td style={{textAlign:"right"}}>{currency(item.subtotal || item.price)}</td>
@@ -260,22 +261,12 @@ export default function CounterPortal() {
             <div className="panel-heading">Patient Lookup</div>
             <div className="panel-sub">Search a patient to view pending tests and bill history</div>
             <div className="search-wrap">
-              <input className="search-input" placeholder="Search by patient name, ID or contact…"
+              <PatientSearchInput
+                patients={patients}
                 value={patientSearch}
-                onChange={e => { setPatientSearch(e.target.value); setShowSugg(true); }}
-                onBlur={() => setTimeout(() => setShowSugg(false), 160)} />
-              {showSugg && patientSearch && filteredPatients.length > 0 && (
-                <div className="drop">
-                  {filteredPatients.map(p => (
-                    <div key={p.id} className="drop-item" onMouseDown={() => handleSelectPatient(p)}>
-                      <span style={{fontWeight:600}}>{p.name}</span>
-                      <span style={{color:"var(--text3)",fontSize:13,marginLeft:10}}>
-                        {p.patient_id}{p.age ? ` · ${p.age}y` : ""}{p.sex ? ` · ${p.sex}` : ""}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                onChange={setPatientSearch}
+                onSelect={handleSelectPatient}
+              />
             </div>
           </div>
           <div className="scroll">

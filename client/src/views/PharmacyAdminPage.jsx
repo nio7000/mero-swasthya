@@ -192,22 +192,24 @@ export default function PharmacyAdminPage() {
 
   if (loading) return <div className="loading-state">Loading pharmacy dashboard…</div>;
 
-  const top5        = mlData?.top5 || [];
+  const top5        = mlData?.top5 || [];        // array of strings (medicine names)
   const predictions = mlData?.predictions || [];
   const confidence  = mlData?.confidence || 0;
   const totalRev    = analytics?.total_revenue || 0;
-  const topSeller   = top5[0]?.name || "—";
-  const maxSold     = top5[0]?.total_sold || 1;
 
-  // ML demand data: map by name for inventory lookup
+  // Build lookup from all_predictions so every medicine in inventory gets ML data
   const mlMap = {};
-  predictions.forEach(p => { mlMap[p.name] = p; });
+  (mlData?.all_predictions || predictions).forEach(p => { mlMap[p.medicine] = p; });
 
-  // Demand forecast chart data — backend gives monthly values, convert to weekly
-  const forecastData = top5.map(p => ({
-    name:     p.name.split(" ")[0],
-    current:  parseFloat((p.monthly_avg / 4).toFixed(1)),
-    forecast: parseFloat(((p.predicted_3m?.[0] || p.predicted_next_month || 0) / 4).toFixed(1)),
+  const top5Data  = top5.map(name => mlMap[name] || { medicine: name, total_sold: 0, monthly_avg: 0, next_3_months: [0,0,0], trend: "up", r2: 0 });
+  const topSeller = top5[0] || "—";
+  const maxSold   = top5Data[0]?.total_sold || 1;
+
+  // Demand forecast chart
+  const forecastData = top5Data.map(p => ({
+    name:     (p.medicine || "").split(" ")[0],
+    current:  parseFloat(((p.monthly_avg || 0) / 4).toFixed(1)),
+    forecast: p.next_3_months?.[0] || 0,   // already weekly units
   }));
 
   return (
@@ -273,7 +275,7 @@ export default function PharmacyAdminPage() {
                   <tbody>
                     {filtered.length===0 && <tr><td colSpan={13} className="tbl-empty">No medicines found.</td></tr>}
                     {filtered.map(m => {
-                      const qty     = Array.isArray(m.stock) ? m.stock.reduce((a,s)=>a+(s.quantity||0),0) : 0;
+                      const qty     = m.total_qty ?? m.quantity ?? (Array.isArray(m.stock) ? m.stock.reduce((a,s)=>a+(s.quantity||0),0) : 0);
                       const today   = new Date();
                       const exp     = new Date(m.expiry_date);
                       const expired = exp < today;
@@ -330,10 +332,10 @@ export default function PharmacyAdminPage() {
               <div className="stat-card bl-accent">
                 <div className="stat-lbl">Top Seller</div>
                 <div className="stat-val" style={{fontSize:20,marginTop:4}}>{topSeller}</div>
-                <div className="stat-sub">{top5[0]?.total_sold || 0} units sold · {top5[0]?.trend === "increasing" ? "↑ Rising demand" : top5[0]?.trend === "decreasing" ? "↓ Falling demand" : "→ Stable demand"}</div>
+                <div className="stat-sub">{top5Data[0]?.total_sold || 0} units sold · {top5Data[0]?.trend === "up" ? "↑ Rising demand" : top5Data[0]?.trend === "down" ? "↓ Falling demand" : "→ Stable demand"}</div>
               </div>
               <div className="stat-card bl-success" style={{justifyContent:"center"}}>
-                <ConfRing pct={confidence} />
+                <ConfRing pct={Math.round(confidence * 100)} />
               </div>
             </div>
 
@@ -347,16 +349,16 @@ export default function PharmacyAdminPage() {
                   </div>
                 </div>
                 <div className="pa-panel-body">
-                  {top5.length > 0 ? (
+                  {top5Data.length > 0 ? (
                     <div className="top5-list">
-                      {top5.map((p, i) => (
+                      {top5Data.map((p, i) => (
                         <div key={i} className="top5-row">
                           <div className={`top5-rank ${i===0?"gold":""}`}>{i+1}</div>
                           <div className="top5-info">
-                            <div className="top5-name">{p.name}</div>
+                            <div className="top5-name">{p.medicine}</div>
                             <div className="top5-bar-bg">
                               <div className="top5-bar-fill" style={{
-                                width:`${(p.total_sold/maxSold)*100}%`,
+                                width:`${((p.total_sold||0)/maxSold)*100}%`,
                                 background: i===0?"#154360":"#2E86C1",
                               }}/>
                             </div>
@@ -364,12 +366,12 @@ export default function PharmacyAdminPage() {
                           <div className="top5-right">
                             <div className="top5-sold">{p.total_sold} units</div>
                             <div className="top5-conf">
-                              {p.trend==="increasing"
+                              {p.trend==="up"
                                 ? <span className="trend-up">↑ Rising</span>
-                                : p.trend==="decreasing"
+                                : p.trend==="down"
                                   ? <span className="trend-dn">↓ Falling</span>
                                   : <span className="trend-st">→ Stable</span>}
-                              &nbsp;· {p.confidence}% conf.
+                              &nbsp;· {Math.round((p.r2||0)*100)}% conf.
                             </div>
                           </div>
                         </div>
@@ -433,32 +435,36 @@ export default function PharmacyAdminPage() {
                     <tr>{["Medicine","Total Sold","Weekly Avg","Wk 1","Wk 2","Wk 3","Wk 4","Trend","Confidence"].map(h=><th key={h}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {top5.length===0 && <tr><td colSpan={9} className="tbl-empty">No data.</td></tr>}
-                    {top5.map((p,i) => (
-                      <tr key={i}>
-                        <td style={{fontWeight:600}}>{p.name}</td>
-                        <td>{p.total_sold}</td>
-                        <td>{parseFloat((p.monthly_avg/4).toFixed(1))}/wk</td>
-                        {(p.predicted_3m||[0,0,0]).concat([p.predicted_3m?.[2]||0]).map((v,j)=>(
-                          <td key={j} style={{color:"var(--accent)",fontWeight:600}}>{v}</td>
-                        ))}
-                        <td>
-                          {p.trend==="increasing"
-                            ? <span className="trend-up">↑ Rising</span>
-                            : p.trend==="decreasing"
-                              ? <span className="trend-dn">↓ Falling</span>
-                              : <span className="trend-st">→ Stable</span>}
-                        </td>
-                        <td>
-                          <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <div style={{flex:1,background:"var(--surface2)",borderRadius:4,height:6,overflow:"hidden"}}>
-                              <div style={{width:`${p.confidence}%`,height:6,borderRadius:4,background:p.confidence>=70?"var(--success)":p.confidence>=45?"var(--warn)":"var(--danger)"}}/>
+                    {top5Data.length===0 && <tr><td colSpan={9} className="tbl-empty">No data.</td></tr>}
+                    {top5Data.map((p,i) => {
+                      const conf = Math.round((p.r2||0)*100);
+                      const wks  = [...(p.next_3_months||[0,0,0,0])].slice(0, 4);
+                      return (
+                        <tr key={i}>
+                          <td style={{fontWeight:600}}>{p.medicine}</td>
+                          <td>{p.total_sold}</td>
+                          <td>{parseFloat(((p.monthly_avg||0)/4).toFixed(1))}/wk</td>
+                          {wks.slice(0,4).map((v,j)=>(
+                            <td key={j} style={{color:"var(--accent)",fontWeight:600}}>{v}</td>
+                          ))}
+                          <td>
+                            {p.trend==="up"
+                              ? <span className="trend-up">↑ Rising</span>
+                              : p.trend==="down"
+                                ? <span className="trend-dn">↓ Falling</span>
+                                : <span className="trend-st">→ Stable</span>}
+                          </td>
+                          <td>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <div style={{flex:1,background:"var(--surface2)",borderRadius:4,height:6,overflow:"hidden"}}>
+                                <div style={{width:`${conf}%`,height:6,borderRadius:4,background:conf>=70?"var(--success)":conf>=45?"var(--warn)":"var(--danger)"}}/>
+                              </div>
+                              <span style={{fontSize:13,fontWeight:600,color:"var(--text2)",minWidth:36}}>{conf}%</span>
                             </div>
-                            <span style={{fontSize:13,fontWeight:600,color:"var(--text2)",minWidth:36}}>{p.confidence}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
-  BarChart, Bar, LineChart, Line,
+  LineChart, Line,
   XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell,
+  Tooltip, ResponsiveContainer,
 } from "recharts";
-import apiClient, { authHeader } from "../utils/api";
+import apiClient from "../utils/api";
 import { fmtDate } from "../utils/date";
-import { currency, fmtNumber } from "../utils/format";
-import { STORAGE_KEYS, ROLES as ROLE_VALUES } from "../constants";
+
 import Topbar from "../components/Topbar";
 
 /* ── helpers ── */
@@ -360,12 +359,12 @@ const CSS = `
 .main-area::-webkit-scrollbar{width:5px;}
 .main-area::-webkit-scrollbar-thumb{background:var(--border-dk);border-radius:3px;}
 
-.workspace{display:grid;grid-template-columns:420px 1fr;gap:28px;}
-.panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;}
-.panel-top{padding:22px 28px 18px;border-bottom:2px solid var(--border);}
+.workspace{display:grid;grid-template-columns:420px 1fr;gap:28px;height:calc(100vh - 160px);}
+.panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+.panel-top{padding:22px 28px 18px;border-bottom:2px solid var(--border);flex-shrink:0;}
 .panel-heading{font-family:var(--font-serif);font-size:18px;font-weight:600;color:var(--primary-dk);margin-bottom:3px;}
 .panel-sub{font-size:13px;color:var(--text3);}
-.panel-body{padding:24px 28px;}
+.panel-body{padding:24px 28px;overflow-y:auto;flex:1;}
 
 .f-lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:6px;margin-top:16px;}
 .f-lbl:first-child{margin-top:0;}
@@ -387,7 +386,7 @@ const CSS = `
 .search-input{padding:10px 14px;border:1.5px solid var(--border);border-radius:6px;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface2);outline:none;width:300px;transition:.15s;}
 .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,134,193,.12);background:#fff;}
 .search-input::placeholder{color:var(--text3);}
-.btn-view{background:var(--primary-lt);color:var(--primary-dk);border:1px solid #AED6F1;border-radius:5px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;margin-right:6px;}
+.btn-view{background:var(--primary-lt);color:var(--primary-dk);border:1px solid #AED6F1;border-radius:5px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap;}
 .btn-view:hover{background:#AED6F1;}
 .spec-edit{display:flex;gap:8px;align-items:center;}
 .spec-select{padding:6px 10px;border:1.5px solid var(--border);border-radius:5px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface2);outline:none;appearance:none;cursor:pointer;}
@@ -409,9 +408,10 @@ const CSS = `
 .border-muted{border-left:4px solid var(--border-dk);}
 .border-success{border-left:4px solid #1E8449;}
 
-.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
-.chart-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:22px 24px;}
-.chart-title{font-family:var(--font-serif);font-size:16px;font-weight:600;color:var(--primary-dk);margin-bottom:18px;}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;align-items:stretch;}
+.chart-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;}
+.chart-title{font-family:var(--font-serif);font-size:16px;font-weight:600;color:var(--primary-dk);margin-bottom:18px;flex-shrink:0;}
+.chart-fill{flex:1;min-height:0;}
 
 /* workload */
 .wl-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
@@ -508,7 +508,7 @@ const SummaryModal = ({ patient, onClose }) => {
           bills.map(b => apiClient.get(`/billing/invoice/${b.bill_id}`).then(r => r.data).catch(() => null))
         );
         setSummary({
-          prescriptions: rxRes.data.prescriptions || [],
+          prescriptions: (rxRes.data.prescriptions || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
           bills:         bills,
           invoices:      invoices,
           aiReports:     reportsRes.data.ai_reports || [],
@@ -518,6 +518,8 @@ const SummaryModal = ({ patient, onClose }) => {
     })();
   }, [patient.id]);
 
+  // Print the patient summary using a hidden iframe so the rest of
+  // the page is not affected by the browser print dialog.
   const handlePrint = () => {
     if (!summary) return;
     const html   = buildSummaryHTML(patient, summary);
@@ -534,6 +536,8 @@ const SummaryModal = ({ patient, onClose }) => {
     }, 500);
   };
 
+  // Open the summary HTML in a new tab and trigger the browser's
+  // Save-as-PDF dialog so the user can download without a server.
   const handleDownload = () => {
     if (!summary) return;
     // Open in new tab and trigger browser print-to-PDF
@@ -940,7 +944,7 @@ const SummaryModal = ({ patient, onClose }) => {
 };
 
 /* ── Analytics Tab ── */
-const AnalyticsTab = ({ doctors }) => {
+const AnalyticsTab = () => {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -987,7 +991,7 @@ const AnalyticsTab = ({ doctors }) => {
           <div className="stat-value">Rs. {Number(data.total_revenue||0).toLocaleString()}</div>
           <div className="stat-sub">
             Pharmacy Rs. {Number(data.pharmacy_revenue||0).toLocaleString()} ·
-            Consult Rs. {Number(data.doctor_revenue||0).toLocaleString()} ·
+            Consult Rs. {Number(data.consult_revenue||0).toLocaleString()} ·
             Tests Rs. {Number(data.test_revenue||0).toLocaleString()}
           </div>
         </div>
@@ -1009,8 +1013,9 @@ const AnalyticsTab = ({ doctors }) => {
         {/* Revenue by month */}
         <div className="chart-card">
           <div className="chart-title">Revenue — Last 6 Months</div>
+          <div className="chart-fill">
           {data.revenue_by_month?.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.revenue_by_month} margin={{top:8,right:16,left:0,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis dataKey="month" tick={{fontSize:11,fill:"#6B7280"}} axisLine={false} tickLine={false}
@@ -1025,8 +1030,9 @@ const AnalyticsTab = ({ doctors }) => {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{height:220,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text3)",fontSize:14}}>No billing data yet</div>
+            <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text3)",fontSize:14}}>No billing data yet</div>
           )}
+          </div>
         </div>
 
         {/* Doctor Workload THIS MONTH */}
@@ -1085,6 +1091,8 @@ const PatientsTab = () => {
     );
   }, [search, patients, showDeleted]);
 
+  // Load all patients from the backend (including soft-deleted ones).
+  // The filtered list is immediately set to active-only on load.
   const fetchAll = async () => {
     try {
       const res = await apiClient.get("/admin/all-patients/");
@@ -1093,6 +1101,8 @@ const PatientsTab = () => {
     } catch { toast.error("Failed to load patients."); }
   };
 
+  // Soft-delete a patient — marks is_deleted in DB but keeps all records.
+  // The patient can be restored later via the "Show removed" toggle.
   const softDelete = async (id) => {
     if (!window.confirm("Remove this patient? Their data will be preserved.")) return;
     try {
@@ -1101,6 +1111,7 @@ const PatientsTab = () => {
     } catch { toast.error("Failed to remove patient."); }
   };
 
+  // Restore a previously soft-deleted patient back to active status.
   const restore = async (id) => {
     try {
       await apiClient.patch(`/admin/restore-patient/${id}`, {});
@@ -1129,8 +1140,16 @@ const PatientsTab = () => {
           </div>
 
           <div className="tbl-wrap">
-            <table className="tbl">
-              <thead><tr>{["Patient ID","Name","Age","Sex","Contact","Address","Actions"].map(h=><th key={h}>{h}</th>)}</tr></thead>
+            <table className="tbl" style={{tableLayout:"fixed",width:"100%"}}>
+              <thead><tr>
+                <th style={{width:"11%"}}>Patient ID</th>
+                <th style={{width:"18%"}}>Name</th>
+                <th style={{width:"7%"}}>Age</th>
+                <th style={{width:"8%"}}>Sex</th>
+                <th style={{width:"13%"}}>Contact</th>
+                <th style={{width:"23%"}}>Address</th>
+                <th style={{width:"160px"}}>Actions</th>
+              </tr></thead>
               <tbody>
                 {filtered.length===0 && <tr><td colSpan={7} className="tbl-empty">No patients found.</td></tr>}
                 {filtered.map(p => (
@@ -1138,16 +1157,19 @@ const PatientsTab = () => {
                     <td style={{fontSize:13,color:"var(--text3)"}}>{p.patient_id}</td>
                     <td style={{fontWeight:600}}>{p.name}</td>
                     <td>{p.age}</td><td>{p.sex}</td>
-                    <td>{p.contact}</td><td>{p.address}</td>
+                    <td>{p.contact}</td>
+                    <td style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={p.address}>{p.address}</td>
                     <td>
-                      {!p.is_deleted ? (
-                        <>
-                          <button className="btn-view" onClick={()=>setSelected(p)}>Summary</button>
-                          <button className="btn-rm"   onClick={()=>softDelete(p.id)}>Remove</button>
-                        </>
-                      ) : (
-                        <button className="btn-save-spec" onClick={()=>restore(p.id)}>Restore</button>
-                      )}
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        {!p.is_deleted ? (
+                          <>
+                            <button className="btn-view" onClick={()=>setSelected(p)}>Summary</button>
+                            <button className="btn-rm" style={{width:"auto",padding:"6px 12px"}} onClick={()=>softDelete(p.id)}>Remove</button>
+                          </>
+                        ) : (
+                          <button className="btn-save-spec" onClick={()=>restore(p.id)}>Restore</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1165,7 +1187,6 @@ export default function AdminPortal() {
   const [activeTab,      setActiveTab]      = useState("users");
   const [fullName,       setFullName]       = useState("");
   const [email,          setEmail]          = useState("");
-  const [password,       setPassword]       = useState("");
   const [role,           setRole]           = useState("doctor");
   const [specialization, setSpecialization] = useState("");
   const [loading,        setLoading]        = useState(false);
@@ -1173,6 +1194,9 @@ export default function AdminPortal() {
   const [filtered,       setFiltered]       = useState([]);
   const [search,         setSearch]         = useState("");
   const [specEdits,      setSpecEdits]      = useState({});
+
+  // The ID of the currently logged-in admin — used to block self-removal.
+  const myUserId = Number(localStorage.getItem("userId") || 0);
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -1186,32 +1210,37 @@ export default function AdminPortal() {
     ));
   }, [search, users]);
 
+  // Fetch all staff users and pre-fill the specEdits map so the
+  // specialization dropdown shows the saved value for each doctor.
   const fetchUsers = async () => {
     try {
       const res = await apiClient.get("/admin/users/");
       setUsers(res.data); setFiltered(res.data);
       const edits = {};
-      res.data.forEach(u => { edits[u.id] = u.specialization||""; });
+      res.data.forEach(u => { edits[u.id] = u.specialization || ""; });
       setSpecEdits(edits);
     } catch { toast.error("Failed to load users."); }
   };
 
+  // Create a new staff account. Doctors require a specialization to be selected.
   const handleCreateUser = async () => {
-    if (!fullName||!email||!password) return toast.warn("Please fill all fields.");
-    if (role==="doctor"&&!specialization) return toast.warn("Please select a specialization for the doctor.");
+    if (!fullName || !email) return toast.warn("Please fill all fields.");
+    if (role === "doctor" && !specialization) return toast.warn("Please select a specialization for the doctor.");
     try {
       setLoading(true);
-      await apiClient.post(
-        "/admin/create-user/",
-        { full_name:fullName, email, password, role, specialization: role==="doctor"?specialization:"" }
-      );
-      toast.success("User created.");
-      setFullName(""); setEmail(""); setPassword(""); setRole("doctor"); setSpecialization("");
+      await apiClient.post("/admin/create-user/", {
+        full_name: fullName, email, role,
+        specialization: role === "doctor" ? specialization : "",
+      });
+      toast.success("User created. A verification email has been sent to their Gmail.");
+      setFullName(""); setEmail(""); setRole("doctor"); setSpecialization("");
       fetchUsers();
     } catch { toast.error("Failed to create user."); }
     finally { setLoading(false); }
   };
 
+  // Soft-delete a staff user. Admin accounts and the logged-in user
+  // are protected — this button is hidden for them in the UI.
   const handleRemove = async (id) => {
     if (!window.confirm("Remove this user?")) return;
     try {
@@ -1220,14 +1249,13 @@ export default function AdminPortal() {
     } catch { toast.error("Failed to remove user."); }
   };
 
+  // Save the updated specialization for a doctor via PATCH request.
   const handleSaveSpec = async (userId) => {
     try {
       await apiClient.patch(`/doctors/${userId}/specialization`, { specialization: specEdits[userId] });
       toast.success("Specialization updated."); fetchUsers();
     } catch { toast.error("Failed to update specialization."); }
   };
-
-  const handleLogout = () => { localStorage.clear(); toast.info("Signed out."); setTimeout(()=>(window.location.href="/"),1000); };
 
   return (
     <>
@@ -1255,8 +1283,6 @@ export default function AdminPortal() {
                 <input className="ctrl" placeholder="Full name…" value={fullName} onChange={e=>setFullName(e.target.value)} />
                 <label className="f-lbl">Email Address</label>
                 <input className="ctrl" type="email" placeholder="Email…" value={email} onChange={e=>setEmail(e.target.value)} />
-                <label className="f-lbl">Password</label>
-                <input className="ctrl" type="password" placeholder="Password…" value={password} onChange={e=>setPassword(e.target.value)} />
                 <label className="f-lbl">Role</label>
                 <div className="sel">
                   <select className="ctrl" value={role} onChange={e=>{setRole(e.target.value);setSpecialization("");}}>
@@ -1315,7 +1341,14 @@ export default function AdminPortal() {
                                 </div>
                               ):<span style={{color:"var(--text3)",fontSize:13}}>—</span>}
                             </td>
-                            <td><button className="btn-rm" onClick={()=>handleRemove(u.id)}>Remove</button></td>
+                            <td>
+                              {/* Hide Remove for admin accounts and the currently logged-in user */}
+                              {u.role !== "admin" && u.id !== myUserId ? (
+                                <button className="btn-rm" style={{width:"auto",padding:"6px 12px"}} onClick={()=>handleRemove(u.id)}>Remove</button>
+                              ) : (
+                                <span style={{fontSize:12,color:"var(--text3)"}}>Protected</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -1328,7 +1361,7 @@ export default function AdminPortal() {
         )}
 
         {activeTab==="patients"  && <PatientsTab />}
-        {activeTab==="analytics" && <AnalyticsTab doctors={users} />}
+        {activeTab==="analytics" && <AnalyticsTab />}
       </div>
     </>
   );

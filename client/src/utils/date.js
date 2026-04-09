@@ -1,23 +1,39 @@
-export const fmtDate = (d) => {
-  if (!d) return "—";
-  try {
-    return new Date(d).toLocaleString("en-US", {
-      year: "numeric", month: "short", day: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
-  } catch { return String(d); }
-};
+/** Format a date string/object as "DD MMM YYYY" (e.g. "07 Apr 2026") */
+export function fmtDate(val) {
+  if (!val) return "—";
+  const d = new Date(val);
+  if (isNaN(d)) return val;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
 
-export const fmtBillDate = (s) => {
-  if (!s) return "";
-  try {
-    const d = new Date((s || "").replace(" ", "T"));
-    if (isNaN(d)) return s;
-    return d.toLocaleString("en-US", {
-      year: "numeric", month: "short", day: "numeric",
-      hour: "numeric", minute: "2-digit", hour12: true,
-    });
-  } catch { return s; }
-};
+/** Format a bill date as "DD MMM YYYY, HH:MM" */
+export function fmtBillDate(val) {
+  if (!val) return "—";
+  const d = new Date(val);
+  if (isNaN(d)) return val;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    + ", " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+/** Format a date as "DD MMM" (e.g. "07 Apr") */
+export function fmtShort(val) {
+  if (!val) return "—";
+  const d = new Date(val);
+  if (isNaN(d)) return val;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+/** Return today's date as YYYY-MM-DD */
+export function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Return current datetime as ISO string */
+export function nowISO() {
+  return new Date().toISOString();
+}
+
+/** Return current 4-digit year */
+export function currentYear() {
+  return new Date().getFullYear();
+}
