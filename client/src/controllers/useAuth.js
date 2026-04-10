@@ -17,6 +17,7 @@ export default function useAuth() {
       localStorage.setItem(STORAGE_KEYS.EMAIL,     userEmail);
       localStorage.setItem(STORAGE_KEYS.FULL_NAME, full_name || "User");
       localStorage.setItem("userId", String(id || ""));
+      localStorage.setItem("mustChangePassword", must_change_password ? "1" : "");
 
       toast.success("Welcome back.");
 

@@ -21,6 +21,7 @@ export default function ChangePassword() {
     setLoading(true);
     try {
       await changePassword(password);
+      localStorage.removeItem("mustChangePassword");
       toast.success("Password updated! Redirecting…");
       setTimeout(() => { window.location.href = ROLE_ROUTES[role] || "/"; }, 1200);
     } catch (err) {
