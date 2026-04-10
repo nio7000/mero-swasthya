@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400;600&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --primary: #1B4F72;
+    --primary-dk: #154360;
+    --primary-lt: #D6EAF8;
+    --accent: #2E86C1;
+    --success: #1E8449;
+    --success-lt: #D5F5E3;
+    --border: #CDD5DF;
+    --text: #1A202C;
+    --text2: #374151;
+    --text3: #6B7280;
+    --surface: #FFFFFF;
+    --surface2: #F4F6F9;
+    --font: 'IBM Plex Sans', sans-serif;
+    --font-serif: 'IBM Plex Serif', serif;
+}
+
+body {
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    background: #fff;
+    padding: 24px;
+}
+
+.inv-wrap {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+}
+
+.inv-head {
+    background: var(--primary-dk);
+    padding: 22px 28px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.inv-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.inv-logo {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, .15);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.inv-hospital {
+    font-family: var(--font-serif);
+    font-size: 19px;
+    color: #fff;
+    margin-bottom: 3px;
+}
+
+.inv-meta {
+    font-size: 12.5px;
+    color: #AED6F1;
+    line-height: 1.7;
+}
+
+.inv-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.inv-badge {
+    background: rgba(255, 255, 255, .15);
+    padding: 9px 14px;
+    border-radius: 6px;
+    text-align: right;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.inv-badge-label {
+    font-size: 10px;
+    color: #AED6F1;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    margin-bottom: 2px;
+}
+
+.inv-badge-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.inv-body {
+    padding: 24px 28px;
+}
+
+.inv-patient-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.inv-patient-lbl {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--text3);
+    margin-bottom: 4px;
+}
+
+.inv-patient-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.inv-patient-sub {
+    font-size: 13px;
+    color: var(--text3);
+}
+
+.tbl-box {
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.inv-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.inv-tbl th {
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text2);
+    border-bottom: 1.5px solid var(--border);
+    background: #E8EEF5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.inv-tbl td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+.inv-tbl tr:last-child td {
+    border-bottom: none;
+}
+
+.inv-tbl tbody tr:nth-child(even) td {
+    background: #F8FAFE;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.inv-total-box {
+    max-width: 280px;
+    margin-left: auto;
+    margin-top: 18px;
+    padding: 16px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+}
+
+.inv-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 7px;
+}
+
+.inv-total-grand {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary-dk);
+    border-top: 1.5px solid var(--border);
+    padding-top: 10px;
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.inv-pay-note {
+    font-size: 12px;
+    color: var(--text3);
+    border-top: 1px dashed var(--border);
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.inv-foot {
+    padding: 14px 28px;
+    border-top: 1.5px solid var(--border);
+    font-size: 13px;
+    color: var(--text3);
+}
+
+/* Follow-up specific */
+.followup-waived {
+    background: #F0FDF4;
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 600;
+}
