@@ -1,0 +1,13 @@
+test_id,name,price
+1,Complete Blood Count,650.0
+2,Blood Sugar (Fasting),400.0
+3,Lipid Profile,1200.0
+4,Liver Function Test,1500.0
+5,Kidney Function Test,1400.0
+6,Thyroid Profile,1300.0
+7,Urine Routine,350.0
+8,Chest X-Ray,1800.0
+9,ECG,900.0
+10,Ultrasound Abdomen,2500.0
+11,HbA1c,1100.0
+12,CRP,850.0

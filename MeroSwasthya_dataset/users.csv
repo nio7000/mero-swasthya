@@ -1,0 +1,21 @@
+users
+users,,,,,
+user_id,full_name,email,password,role_id,specialization
+1,Super Admin,admin@nio.com,123,1,
+2,Nikesh Oli,nio@nio.com,123,2,Cardiologist
+3,Samikshya Sitoula,samu@nio.com,123,2,Gynecologist
+4,Arjun Karki,arjun@nio.com,123,2,Orthopedist
+5,Sunita Rai,sunita@nio.com,123,2,Dermatologist
+6,Rajesh Sharma,raj@nio.com,123,2,Neurologist
+7,Priya Thapa,priya@nio.com,123,2,Pediatrician
+8,Sagar Joshi,sagar@nio.com,123,2,Gastroenterologist
+9,Rina Shrestha,rina@nio.com,123,2,ENT Specialist
+10,Bibek Adhikari,bibek@nio.com,123,2,Psychiatrist
+11,Ram Khadka,ram@nio.com,123,2,Urologist
+12,Kiran Gurung,kiran@nio.com,123,2,Pulmonologist
+13,Amit Chaudhary,amit@nio.com,123,2,General Physician
+14,Muskan Shrestha,muskan@nio.com,123,7,
+15,Saugat Ojha,saugat@nio.com,123,4,
+16,Shrawan Rijal,shrawan@nio.com,123,5,
+17,Aasish Thapa,aasish@nio.com,123,6,
+18,Smriti Oli,smu@nio.com,123,3,

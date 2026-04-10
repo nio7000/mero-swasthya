@@ -1,0 +1,31 @@
+medicine_id,name,manufacturer,strength,category,price,quantity,expiry,threshold
+1,Paracetamol,Nepal Pharma,250mg,Respiratory,58.63,164,2026-03-24,16
+2,Ibuprofen,Nepal Pharma,100mg,Analgesic,10.81,161,2026-04-17,48
+3,Amoxicillin,Nepal Pharma,500mg,Respiratory,131.73,329,2026-07-08,38
+4,Cetirizine,Asian Pharma,250mg,Supplement,162.13,407,2026-07-11,27
+5,Azithromycin,Himal Pharma,500mg,Supplement,70.64,97,2026-07-04,32
+6,Metformin,Asian Pharma,10mg,Supplement,13.47,285,2026-09-04,34
+7,Amlodipine,Nepal Pharma,10mg,Supplement,127.58,491,2026-06-19,22
+8,Omeprazole,Nepal Pharma,250mg,Respiratory,49.44,198,2026-02-28,24
+9,Atorvastatin,Nepal Pharma,100mg,Antihistamine,93.42,477,2026-06-06,33
+10,Losartan,Asian Pharma,500mg,Respiratory,57.06,399,2026-11-03,48
+11,Cough Syrup,Himal Pharma,500mg,Antibiotic,95.14,188,2026-11-23,45
+12,ORS,Himal Pharma,10mg,Supplement,154.82,78,2026-04-27,12
+13,Vitamin C,Asian Pharma,100mg,Antihistamine,17.91,340,2026-12-11,23
+14,Insulin,Everest Pharma,100mg,Respiratory,94.48,185,2026-03-08,45
+15,Salbutamol,Asian Pharma,100mg,Diabetes,82.88,162,2026-03-17,41
+16,Pantoprazole,Nepal Pharma,250mg,Supplement,26.38,371,2026-03-26,37
+17,Clopidogrel,Nepal Pharma,100mg,Cardio,121.2,289,2026-09-09,45
+18,Aspirin,Nepal Pharma,250mg,Respiratory,177.53,434,2026-05-25,31
+19,Diclofenac,Nepal Pharma,10mg,Cardio,35.84,51,2026-12-24,26
+20,Levocetirizine,Himal Pharma,250mg,Supplement,126.93,480,2026-11-17,48
+21,Doxycycline,Himal Pharma,500mg,Antihistamine,153.69,326,2026-09-01,48
+22,Hydroxychloroquine,Asian Pharma,100mg,Analgesic,26.81,235,2026-05-08,13
+23,Montelukast,Himal Pharma,250mg,Analgesic,147.72,467,2026-02-25,44
+24,Calcium Tablets,Himal Pharma,500mg,Respiratory,97.68,331,2026-03-09,43
+25,Iron Supplements,Everest Pharma,500mg,Diabetes,152.28,403,2026-04-23,29
+26,Multivitamins,Everest Pharma,10mg,Cardio,180.42,281,2026-02-08,24
+27,Furosemide,Nepal Pharma,10mg,Analgesic,119.72,167,2026-10-08,10
+28,Lisinopril,Nepal Pharma,250mg,Antibiotic,18.14,66,2026-06-03,42
+29,Prednisolone,Himal Pharma,10mg,Respiratory,99.66,326,2026-03-24,46
+30,Ranitidine,Everest Pharma,500mg,Supplement,97.23,258,2026-04-04,16

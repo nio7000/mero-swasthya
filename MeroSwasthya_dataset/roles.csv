@@ -1,0 +1,8 @@
+role_id,role,description
+1,admin,"Full system access — manage users, view all data"
+2,doctor,"Create prescriptions, view assigned patient records"
+3,receptionist,"Register patients, manage appointments"
+4,technician,Process lab test requests and upload results
+5,pharmacist,"Dispense medicines, view prescription queue"
+6,pharmacy_admin,"Manage medicine inventory, pricing, and pharmacy billing"
+7,counter,Handle lab-test payments and generate invoices

@@ -1,0 +1,14 @@
+doctor_workload_summary
+doctor_id,doctor_name,specialization,all_time_visits,april_2026_visits
+2,Nikesh Oli,Cardiologist,2784,17
+3,Samikshya Sitoula,Gynecologist,3281,19
+4,Arjun Karki,Orthopedist,1965,13
+5,Sunita Rai,Dermatologist,2115,10
+6,Rajesh Sharma,Neurologist,2776,18
+7,Priya Thapa,Pediatrician,4097,18
+8,Sagar Joshi,Gastroenterologist,2218,9
+9,Rina Shrestha,ENT Specialist,2522,12
+10,Bibek Adhikari,Psychiatrist,1915,11
+11,Ram Khadka,Urologist,2789,17
+12,Kiran Gurung,Pulmonologist,3705,20
+13,Amit Chaudhary,General Physician,12113,44
