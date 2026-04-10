@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../styles/counter-portal.css";
 import QRCode from "react-qr-code";
 import apiClient from "../utils/api";
 import { fmtBillDate, todayISO } from "../utils/date";
@@ -9,21 +10,6 @@ import { STORAGE_KEYS, HOSPITAL_NAME, HOSPITAL_ADDR, HOSPITAL_PHONE, MAX_DISCOUN
 import Topbar from "../components/Topbar";
 import PatientSearchInput from "../components/PatientSearchInput";
 
-const CSS = `
-.bill-card{border:1.5px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;background:var(--surface2);}
-.bill-card-head{display:flex;justify-content:space-between;align-items:center;}
-.btn-checkout{font-family:var(--font);font-size:15px;font-weight:700;background:var(--primary-dk);color:#fff;border:none;border-radius:6px;padding:14px;cursor:pointer;transition:.15s;width:100%;margin-top:10px;letter-spacing:.3px;}
-.btn-checkout:hover{background:var(--primary);}
-.btn-ghost-print{font-family:var(--font);font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;color:var(--primary);}
-.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
-.pay-btn{padding:12px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
-.pay-btn.active{border-color:var(--accent);background:var(--primary-lt);color:var(--primary-dk);}
-.total-box{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:20px;}
-.total-row{display:flex;justify-content:space-between;align-items:center;font-size:14.5px;margin-bottom:8px;}
-.total-row:last-child{margin-bottom:0;}
-.total-grand{font-size:17px;font-weight:700;color:var(--primary-dk);border-top:2px solid var(--border);padding-top:10px;margin-top:8px;}
-.modal-amount{font-size:16px;color:var(--text2);margin:16px 0;}
-`;
 
 const InvoiceCard = ({ invoiceData, selectedPatient, paymentMethod }) => {
   if (!invoiceData) return null;
@@ -203,41 +189,11 @@ export default function CounterPortal() {
     } catch { toast.error("Failed to load invoice"); }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const el = document.getElementById("counter-invoice-print");
     if (!el) return toast.error("Invoice not found");
-    const printCSS = `
-      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400;600&display=swap');
-      *{box-sizing:border-box;margin:0;padding:0;}
-      :root{--primary:#1B4F72;--primary-dk:#154360;--accent:#2E86C1;--border:#CDD5DF;--text:#1A202C;--text2:#374151;--text3:#6B7280;--font:'IBM Plex Sans',sans-serif;--font-serif:'IBM Plex Serif',serif;}
-      body{font-family:var(--font);font-size:14px;color:var(--text);background:#fff;padding:24px;}
-      .inv-wrap{border-radius:10px;overflow:hidden;border:1.5px solid var(--border);}
-      .inv-head{background:var(--primary-dk);padding:22px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-logo-row{display:flex;align-items:center;gap:14px;}
-      .inv-logo{width:48px;height:48px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;}
-      .inv-hospital{font-family:var(--font-serif);font-size:19px;color:#fff;margin-bottom:3px;}
-      .inv-meta{font-size:12px;color:#AED6F1;line-height:1.7;}
-      .inv-badges{display:flex;flex-direction:column;gap:8px;}
-      .inv-badge{background:rgba(255,255,255,.15);padding:9px 14px;border-radius:6px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-badge-label{font-size:10px;color:#AED6F1;text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px;}
-      .inv-badge-val{font-size:16px;font-weight:700;color:#fff;}
-      .inv-body{padding:24px 28px;}
-      .inv-patient-row{display:flex;justify-content:space-between;margin-bottom:20px;}
-      .inv-patient-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:4px;}
-      .inv-patient-name{font-size:16px;font-weight:600;}
-      .inv-patient-sub{font-size:13px;color:var(--text3);}
-      .tbl-box{border:1.5px solid var(--border);border-radius:6px;overflow:hidden;}
-      .inv-tbl{width:100%;border-collapse:collapse;font-size:14px;}
-      .inv-tbl th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border-bottom:1.5px solid var(--border);background:#E8EEF5;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);}
-      .inv-tbl tr:last-child td{border-bottom:none;}
-      .inv-tbl tbody tr:nth-child(even) td{background:#F8FAFE;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-total-box{max-width:280px;margin-left:auto;margin-top:18px;padding:16px 18px;border:1.5px solid var(--border);border-radius:8px;}
-      .inv-total-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;}
-      .inv-total-grand{font-size:16px;font-weight:700;color:var(--primary-dk);border-top:1.5px solid var(--border);padding-top:10px;margin-top:8px;display:flex;justify-content:space-between;}
-      .inv-pay-note{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:10px;}
-      .inv-foot{padding:14px 28px;border-top:1.5px solid var(--border);font-size:13px;color:var(--text3);}
-    `;
+    const res = await fetch("/print-invoice.css");
+    const printCSS = await res.text();
     const iframe = document.createElement("iframe");
     Object.assign(iframe.style, { position:"absolute", width:"0", height:"0", border:"none" });
     document.body.appendChild(iframe);
@@ -248,11 +204,10 @@ export default function CounterPortal() {
     setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 400);
   };
 
-  const displayedBill = sortBill ? [...billHistory].sort((a,b) => b.bill_id - a.bill_id) : [...billHistory];
+  const displayedBill = sortBill ? [...billHistory].sort((a,b) => a.bill_id - b.bill_id) : [...billHistory];
 
   return (
     <>
-      <style>{CSS}</style>
       <ToastContainer position="top-right" autoClose={3000} />
       <Topbar role="Counter Portal" />
       <div className="workspace">
@@ -302,7 +257,7 @@ export default function CounterPortal() {
                   <span className="sec-title">Bill History</span>
                   {billHistory.length > 0 && (
                     <button className="btn-sort" onClick={() => setSortBill(!sortBill)}>
-                      {sortBill ? "Default Order" : "Most Recent First"}
+                      {sortBill ? "Newest First" : "Oldest First"}
                     </button>
                   )}
                 </div>

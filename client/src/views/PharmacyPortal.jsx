@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../styles/pharmacy-portal.css";
 import QRCode from "react-qr-code";
 import apiClient from "../utils/api";
 import { fmtDate, fmtBillDate, todayISO } from "../utils/date";
@@ -38,45 +39,6 @@ const calculateQty = (dose, duration, type) => {
 };
 
 /* ── CSS (pharmacy-specific only) ── */
-const CSS = `
-/* QTY */
-.qty-row{display:flex;align-items:center;gap:16px;margin:12px 0;}
-.qty-btn{width:38px;height:38px;border:1.5px solid var(--border);border-radius:50%;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;font-family:var(--font);}
-.qty-btn-minus{background:var(--surface2);color:var(--text2);}
-.qty-btn-minus:hover{background:var(--border);}
-.qty-btn-plus{background:var(--primary-dk);color:#fff;border-color:var(--primary-dk);}
-.qty-btn-plus:hover{background:var(--primary);}
-.qty-val{font-size:22px;font-weight:700;min-width:36px;text-align:center;}
-
-/* PAYMENT */
-.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
-.pay-btn{padding:12px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
-.pay-btn.active{border-color:var(--accent);background:var(--primary-lt);color:var(--primary-dk);}
-
-/* TOTAL BOX */
-.total-box{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:20px;}
-.total-row{display:flex;justify-content:space-between;align-items:center;font-size:14.5px;margin-bottom:8px;}
-.total-row:last-child{margin-bottom:0;}
-.total-grand{font-size:17px;font-weight:700;color:var(--primary-dk);border-top:2px solid var(--border);padding-top:10px;margin-top:8px;}
-
-/* BILL CARD */
-.bill-card{border:1.5px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;background:var(--surface2);}
-.bill-card-head{display:flex;justify-content:space-between;align-items:center;}
-
-/* MED DROPDOWN */
-.med-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;background:#fff;border:1.5px solid var(--border-dk);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.14);overflow:hidden;max-height:200px;overflow-y:auto;}
-.med-opt{padding:11px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;color:var(--text);transition:background .12s;}
-.med-opt:last-child{border-bottom:none;}
-.med-opt:hover{background:var(--primary-lt);}
-
-/* CHECKOUT */
-.btn-checkout{font-family:var(--font);font-size:15px;font-weight:700;background:var(--primary-dk);color:#fff;border:none;border-radius:6px;padding:14px;cursor:pointer;transition:.15s;width:100%;margin-top:10px;letter-spacing:.3px;}
-.btn-checkout:hover{background:var(--primary);}
-.btn-ghost-print{font-family:var(--font);font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;color:var(--primary);}
-
-.sub-lbl{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin:14px 0 8px;}
-.sub-lbl:first-child{margin-top:0;}
-`;
 
 /* ── Invoice Card ── */
 const InvoiceCard = ({ invoiceData, selectedReport, paymentMethod }) => {
@@ -135,7 +97,9 @@ const InvoiceCard = ({ invoiceData, selectedReport, paymentMethod }) => {
           <table className="inv-tbl">
             <thead>
               <tr>
-                <th>Description</th>
+                <th>Medicine</th>
+                <th>Strength</th>
+                <th>Manufacturer</th>
                 <th>Qty</th>
                 <th>Unit Price</th>
                 <th style={{textAlign:"right"}}>Amount</th>
@@ -145,6 +109,8 @@ const InvoiceCard = ({ invoiceData, selectedReport, paymentMethod }) => {
               {inv.items.map((item,i) => (
                 <tr key={i}>
                   <td>{item.description || item.medicine_name}</td>
+                  <td style={{color:"var(--text3)"}}>{item.strength || "—"}</td>
+                  <td style={{color:"var(--text3)"}}>{item.manufacturer || "—"}</td>
                   <td>{item.qty}</td>
                   <td>Rs. {item.price}</td>
                   <td style={{textAlign:"right"}}>Rs. {item.subtotal}</td>
@@ -370,47 +336,11 @@ export default function PharmacyPortal() {
     } catch { toast.error("Invoice load failed"); }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const el = document.getElementById("invoice-print-area");
     if (!el) return toast.error("Invoice not found");
-
-    const printStyles = `
-      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400;600&display=swap');
-      *{box-sizing:border-box;margin:0;padding:0;}
-      :root{
-        --primary:#1B4F72;--primary-dk:#154360;--primary-lt:#D6EAF8;
-        --accent:#2E86C1;--border:#CDD5DF;--text:#1A202C;--text2:#374151;--text3:#6B7280;
-        --surface:#FFFFFF;--surface2:#F4F6F9;--font:'IBM Plex Sans',sans-serif;--font-serif:'IBM Plex Serif',serif;
-      }
-      body{font-family:var(--font);font-size:14px;color:var(--text);background:#fff;padding:24px;}
-      .inv-wrap{background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);}
-      .inv-head{background:var(--primary-dk);padding:22px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-logo-row{display:flex;align-items:center;gap:14px;}
-      .inv-logo{width:48px;height:48px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
-      .inv-hospital{font-family:var(--font-serif);font-size:19px;color:#fff;margin-bottom:3px;}
-      .inv-meta{font-size:12px;color:#AED6F1;line-height:1.7;}
-      .inv-badges{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
-      .inv-badge{background:rgba(255,255,255,.15);padding:9px 14px;border-radius:6px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-badge-label{font-size:10px;color:#AED6F1;text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px;}
-      .inv-badge-val{font-size:16px;font-weight:700;color:#fff;}
-      .inv-body{padding:24px 28px;}
-      .inv-patient-row{display:flex;justify-content:space-between;margin-bottom:20px;}
-      .inv-patient-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:4px;}
-      .inv-patient-name{font-size:16px;font-weight:600;color:var(--text);}
-      .inv-patient-sub{font-size:13px;color:var(--text3);}
-      .tbl-box{border:1.5px solid var(--border);border-radius:6px;overflow:hidden;}
-      .inv-tbl{width:100%;border-collapse:collapse;font-size:14px;}
-      .inv-tbl th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border-bottom:1.5px solid var(--border);background:#E8EEF5;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);}
-      .inv-tbl tr:last-child td{border-bottom:none;}
-      .inv-tbl tbody tr:nth-child(even) td{background:#F8FAFE;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-total-box{max-width:280px;margin-left:auto;margin-top:18px;padding:16px 18px;border:1.5px solid var(--border);border-radius:8px;}
-      .inv-total-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;}
-      .inv-total-grand{font-size:16px;font-weight:700;color:var(--primary-dk);border-top:1.5px solid var(--border);padding-top:10px;margin-top:8px;display:flex;justify-content:space-between;}
-      .inv-pay-note{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:10px;}
-      .inv-foot{padding:14px 28px;border-top:1.5px solid var(--border);font-size:13px;color:var(--text3);}
-    `;
-
+    const res = await fetch("/print-invoice.css");
+    const printStyles = await res.text();
     const iframe = document.createElement("iframe");
     Object.assign(iframe.style, { position:"absolute", width:"0", height:"0", border:"none" });
     document.body.appendChild(iframe);
@@ -430,7 +360,7 @@ export default function PharmacyPortal() {
   const netTotal    = totalAmount-discountAmt;
 
   const displayedRx   = sortRx   ? byRecent(prescriptions) : prescriptions;
-  const displayedBill = sortBill ? [...bills].sort((a,b) => b.bill_id - a.bill_id) : [...bills];
+  const displayedBill = sortBill ? [...bills].sort((a,b) => a.bill_id - b.bill_id) : [...bills];
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -441,7 +371,6 @@ export default function PharmacyPortal() {
 
   return (
     <>
-      <style>{CSS}</style>
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* TOPBAR */}
@@ -504,7 +433,7 @@ export default function PharmacyPortal() {
                   <span className="sec-title">Bill History</span>
                   {bills.length > 0 && (
                     <button className="btn-sort" onClick={() => setSortBill(!sortBill)}>
-                      {sortBill ? "Default Order" : "Most Recent First"}
+                      {sortBill ? "Newest First" : "Oldest First"}
                     </button>
                   )}
                 </div>

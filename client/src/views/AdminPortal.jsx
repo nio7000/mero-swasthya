@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../styles/admin-portal.css";
 import {
   LineChart, Line,
   XAxis, YAxis, CartesianGrid,
@@ -216,7 +217,7 @@ const buildSummaryHTML = (patient, summary) => {
           itemRows = '<tr><td colspan="4" style="color:#6B7280;font-style:italic;padding:10px 12px">No item details</td></tr>';
         } else {
           itemRows = items.map((it, j) => {
-            const n  = it.name || it.medicine_name || (it.medicine_id === 0 ? "Consultation / Lab Test" : "Medicine");
+            const n  = it.description || it.name || it.medicine_name || it.test_name || "—";
             const q  = it.qty || 1;
             const p  = Number(it.price || 0).toLocaleString();
             const a  = Number(it.subtotal || (it.qty||1)*(it.price||0)).toLocaleString();
@@ -349,146 +350,6 @@ const buildSummaryHTML = (patient, summary) => {
 };
 
 /* ── CSS ── */
-const CSS = `
-.tabs{display:flex;border-bottom:2px solid var(--border);padding:0 36px;background:var(--surface);}
-.tab{font-family:var(--font);font-size:14px;font-weight:600;color:var(--text3);background:none;border:none;padding:14px 22px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;}
-.tab:hover{color:var(--primary);}
-.tab.active{color:var(--primary-dk);border-bottom-color:var(--primary-dk);}
-
-.main-area{height:calc(100vh - 116px);overflow-y:auto;padding:32px 36px;}
-.main-area::-webkit-scrollbar{width:5px;}
-.main-area::-webkit-scrollbar-thumb{background:var(--border-dk);border-radius:3px;}
-
-.workspace{display:grid;grid-template-columns:420px 1fr;gap:28px;height:calc(100vh - 160px);}
-.panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
-.panel-top{padding:22px 28px 18px;border-bottom:2px solid var(--border);flex-shrink:0;}
-.panel-heading{font-family:var(--font-serif);font-size:18px;font-weight:600;color:var(--primary-dk);margin-bottom:3px;}
-.panel-sub{font-size:13px;color:var(--text3);}
-.panel-body{padding:24px 28px;overflow-y:auto;flex:1;}
-
-.f-lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:6px;margin-top:16px;}
-.f-lbl:first-child{margin-top:0;}
-.spec-box{margin-top:14px;padding:12px 14px;background:var(--primary-lt);border:1px solid #AED6F1;border-radius:6px;}
-.spec-box-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:8px;}
-.btn-create{width:100%;padding:13px;background:var(--primary-dk);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:.15s;box-shadow:0 3px 10px rgba(21,67,96,.25);}
-.btn-create:hover{background:var(--primary);}
-.btn-create:disabled{background:var(--border-dk);cursor:not-allowed;box-shadow:none;}
-
-.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.tbl-wrap{overflow-x:auto;}
-.tbl{width:100%;border-collapse:collapse;font-size:14px;}
-.tbl thead tr{background:#E8EEF5;}
-.tbl th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:1.5px solid var(--border);}
-.tbl td{padding:11px 14px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle;}
-.tbl tr:last-child td{border-bottom:none;}
-.tbl tbody tr:nth-child(even) td{background:#F8FAFE;}
-.tbl tbody tr:hover td{background:var(--primary-lt);}
-.search-input{padding:10px 14px;border:1.5px solid var(--border);border-radius:6px;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface2);outline:none;width:300px;transition:.15s;}
-.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,134,193,.12);background:#fff;}
-.search-input::placeholder{color:var(--text3);}
-.btn-view{background:var(--primary-lt);color:var(--primary-dk);border:1px solid #AED6F1;border-radius:5px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap;}
-.btn-view:hover{background:#AED6F1;}
-.spec-edit{display:flex;gap:8px;align-items:center;}
-.spec-select{padding:6px 10px;border:1.5px solid var(--border);border-radius:5px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface2);outline:none;appearance:none;cursor:pointer;}
-.btn-save-spec{padding:6px 12px;background:var(--primary-lt);color:var(--primary-dk);border:1px solid #AED6F1;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
-.btn-save-spec:hover{background:#AED6F1;}
-.tbl-empty{text-align:center;padding:48px;color:var(--text3);font-size:14px;}
-.deleted-row td{opacity:.45;text-decoration:line-through;}
-
-/* ANALYTICS */
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px;}
-.stat-grid-6{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
-.stat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px 22px;}
-.stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:6px;}
-.stat-value{font-family:var(--font-serif);font-size:28px;font-weight:600;color:var(--primary-dk);}
-.stat-sub{font-size:12.5px;color:var(--text3);margin-top:3px;}
-.border-primary{border-left:4px solid var(--primary-dk);}
-.border-accent{border-left:4px solid var(--accent);}
-.border-warn{border-left:4px solid #B7770D;}
-.border-muted{border-left:4px solid var(--border-dk);}
-.border-success{border-left:4px solid #1E8449;}
-
-.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;align-items:stretch;}
-.chart-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;}
-.chart-title{font-family:var(--font-serif);font-size:16px;font-weight:600;color:var(--primary-dk);margin-bottom:18px;flex-shrink:0;}
-.chart-fill{flex:1;min-height:0;}
-
-/* workload */
-.wl-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
-.wl-avatar{width:38px;height:38px;border-radius:50%;background:var(--primary-lt);color:var(--primary-dk);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.wl-info{flex:1;}
-.wl-name{font-size:14px;font-weight:600;color:var(--text);}
-.wl-spec{font-size:12px;color:var(--text3);}
-.wl-bar-bg{background:var(--surface2);border-radius:4px;height:6px;margin-top:5px;overflow:hidden;}
-.wl-bar{background:var(--accent);height:6px;border-radius:4px;transition:width .5s ease;}
-.wl-count{font-size:14px;font-weight:700;color:var(--primary-dk);flex-shrink:0;min-width:28px;text-align:right;}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:500;padding:24px;}
-.modal-box{background:var(--surface);border-radius:12px;width:100%;max-width:880px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-.modal-box::-webkit-scrollbar{width:5px;}
-.modal-box::-webkit-scrollbar-thumb{background:var(--border-dk);border-radius:3px;}
-.modal-head{background:var(--primary-dk);padding:20px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;border-radius:12px 12px 0 0;}
-.modal-title{font-family:var(--font-serif);font-size:18px;color:#fff;}
-.modal-acts{display:flex;gap:8px;}
-.btn-mact{font-family:var(--font);font-size:13px;font-weight:600;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);padding:7px 16px;border-radius:4px;cursor:pointer;transition:.15s;}
-.btn-mact:hover{background:rgba(255,255,255,.26);}
-.btn-mclose{font-family:var(--font);font-size:13px;font-weight:600;background:transparent;color:#AED6F1;border:1px solid rgba(255,255,255,.18);padding:7px 16px;border-radius:4px;cursor:pointer;}
-.modal-body{padding:28px;}
-
-/* PREVIEW (inside modal) */
-.prev-header{background:var(--primary-dk);border-radius:8px;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
-.prev-logo-row{display:flex;align-items:center;gap:12px;}
-.prev-logo{width:42px;height:42px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;}
-.prev-hospital{font-family:var(--font-serif);font-size:17px;color:#fff;margin-bottom:2px;}
-.prev-meta{font-size:12px;color:#AED6F1;line-height:1.7;}
-.prev-badges{display:flex;flex-direction:column;gap:7px;align-items:flex-end;}
-.prev-badge{background:rgba(255,255,255,.15);padding:7px 12px;border-radius:5px;text-align:right;}
-.prev-badge-lbl{font-size:9.5px;color:#AED6F1;text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px;}
-.prev-badge-val{font-size:13px;font-weight:700;color:#fff;}
-
-.prev-patient{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;padding-bottom:18px;border-bottom:2px solid var(--border);}
-.prev-name{font-family:var(--font-serif);font-size:20px;color:var(--primary-dk);margin-bottom:5px;}
-.prev-pmeta{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--text2);}
-.prev-pid{font-size:12px;font-weight:700;color:var(--accent);background:var(--primary-lt);padding:3px 11px;border-radius:4px;border:1px solid #AED6F1;display:inline-block;margin-bottom:7px;}
-.prev-spent{font-size:12.5px;color:var(--text3);}
-.prev-spent strong{font-size:17px;font-weight:700;color:var(--primary-dk);display:block;}
-
-.prev-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--primary);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;}
-.prev-sec-count{font-size:11px;color:var(--text3);background:var(--surface2);padding:2px 9px;border-radius:10px;border:1px solid var(--border);}
-
-.prev-rx{border:1.5px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;}
-.prev-rx-head{background:var(--surface2);padding:11px 16px;border-bottom:1px solid var(--border);}
-.prev-dx-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:3px;}
-.prev-dx{font-size:14.5px;font-weight:600;color:var(--text);}
-.prev-rx-body{padding:14px 16px;}
-.prev-sub{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:8px;}
-.prev-tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
-.prev-tbl th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border-bottom:1.5px solid var(--border);background:#E8EEF5;}
-.prev-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);}
-.prev-tbl tr:last-child td{border-bottom:none;}
-.prev-tbl tbody tr:nth-child(even) td{background:#F8FAFE;}
-.prev-tbl-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
-.prev-rx-foot{display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
-
-.prev-bill{border:1.5px solid var(--border);border-radius:8px;padding:13px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
-.prev-bill-id{font-size:13px;font-weight:700;color:var(--primary-dk);margin-bottom:3px;}
-.prev-bill-date{font-size:12px;color:var(--text3);}
-.prev-bill-amt{font-size:17px;font-weight:700;color:var(--primary-dk);}
-.prev-bill-method{font-size:11px;color:var(--text3);text-transform:uppercase;}
-
-.prev-footer{margin-top:28px;padding-top:14px;border-top:1.5px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--text3);}
-
-.empty-state{font-size:13.5px;color:var(--text3);padding:16px 0;font-style:italic;}
-.loading-state{text-align:center;padding:80px;color:var(--text3);}
-.loading-state p{font-size:14px;margin-top:8px;}
-
-@media(max-width:1024px){
-  .workspace{grid-template-columns:1fr;}
-  .stat-grid,.stat-grid-6{grid-template-columns:1fr 1fr;}
-  .chart-row{grid-template-columns:1fr;}
-}
-`;
 
 /* ── Summary Modal ── */
 const SummaryModal = ({ patient, onClose }) => {
@@ -503,15 +364,15 @@ const SummaryModal = ({ patient, onClose }) => {
           apiClient.get(`/admin/billing/patient/${patient.id}`),
           apiClient.get(`/ai-reports/${patient.id}`),
         ]);
-        const bills = billRes.data.bills || [];
+        const bills = (billRes.data.bills || []).sort((a, b) => a.bill_id - b.bill_id);
         const invoices = await Promise.all(
           bills.map(b => apiClient.get(`/billing/invoice/${b.bill_id}`).then(r => r.data).catch(() => null))
         );
         setSummary({
-          prescriptions: (rxRes.data.prescriptions || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
-          bills:         bills,
-          invoices:      invoices,
-          aiReports:     reportsRes.data.ai_reports || [],
+          prescriptions: (rxRes.data.prescriptions || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+          bills,
+          invoices,
+          aiReports:     (reportsRes.data.ai_reports || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
         });
       } catch { toast.error("Failed to load patient summary."); }
       finally  { setLoading(false); }
@@ -904,7 +765,7 @@ const SummaryModal = ({ patient, onClose }) => {
                                   ? <tr><td colSpan={4} style={{padding:"10px 12px",color:"var(--text3)",fontStyle:"italic"}}>No item details</td></tr>
                                   : items.map((it,j) => (
                                     <tr key={j} style={{background: j%2===1 ? "#F8FAFE" : "transparent"}}>
-                                      <td style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",color:"var(--text)"}}>{it.name || it.medicine_name || (it.medicine_id===0 ? "Consultation / Lab Test" : "Medicine")}</td>
+                                      <td style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",color:"var(--text)"}}>{it.description || it.name || it.medicine_name || "—"}</td>
                                       <td style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",color:"var(--text)"}}>{it.qty||1}</td>
                                       <td style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",color:"var(--text)"}}>Rs. {Number(it.price||0).toLocaleString()}</td>
                                       <td style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",color:"var(--text)",textAlign:"right"}}>Rs. {Number(it.subtotal||(it.qty||1)*(it.price||0)).toLocaleString()}</td>
@@ -1068,12 +929,15 @@ const AnalyticsTab = () => {
 };
 
 /* ── Patients Tab ── */
+const PAGE_SIZE = 15;
+
 const PatientsTab = () => {
   const [patients,    setPatients]    = useState([]);
   const [filtered,    setFiltered]    = useState([]);
   const [search,      setSearch]      = useState("");
   const [selected,    setSelected]    = useState(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [page,        setPage]        = useState(1);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -1089,6 +953,7 @@ const PatientsTab = () => {
           (p.address||"").toLowerCase().includes(q)
         )
     );
+    setPage(1);
   }, [search, patients, showDeleted]);
 
   // Load all patients from the backend (including soft-deleted ones).
@@ -1122,12 +987,12 @@ const PatientsTab = () => {
   return (
     <>
       {selected && <SummaryModal patient={selected} onClose={() => setSelected(null)} />}
-      <div className="panel" style={{maxWidth:"100%"}}>
-        <div className="panel-top">
-          <div className="panel-heading">All Patients</div>
-          <div className="panel-sub">View, search, manage and generate summaries for each patient</div>
+      <div className="admin-panel" style={{maxWidth:"100%"}}>
+        <div className="admin-panel-top">
+          <div className="admin-panel-heading">All Patients</div>
+          <div className="admin-panel-sub">View, search, manage and generate summaries for each patient</div>
         </div>
-        <div className="panel-body">
+        <div className="admin-panel-body">
           <div className="sec-hd">
             <div style={{display:"flex",alignItems:"center",gap:16}}>
               <span style={{fontSize:13,color:"var(--text3)"}}>{filtered.length} patient{filtered.length!==1?"s":""} shown</span>
@@ -1152,7 +1017,7 @@ const PatientsTab = () => {
               </tr></thead>
               <tbody>
                 {filtered.length===0 && <tr><td colSpan={7} className="tbl-empty">No patients found.</td></tr>}
-                {filtered.map(p => (
+                {filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(p => (
                   <tr key={p.id} className={p.is_deleted?"deleted-row":""}>
                     <td style={{fontSize:13,color:"var(--text3)"}}>{p.patient_id}</td>
                     <td style={{fontWeight:600}}>{p.name}</td>
@@ -1176,6 +1041,54 @@ const PatientsTab = () => {
               </tbody>
             </table>
           </div>
+          {(() => {
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (totalPages <= 1) return null;
+            return (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:16,fontSize:13,color:"var(--text2)"}}>
+                <span>Page {page} of {totalPages} &nbsp;·&nbsp; {filtered.length} patient{filtered.length!==1?"s":""}</span>
+                <div style={{display:"flex",gap:6}}>
+                  <button
+                    onClick={()=>setPage(1)} disabled={page===1}
+                    style={{padding:"5px 10px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:page===1?"not-allowed":"pointer",opacity:page===1?.5:1,fontFamily:"var(--font)",fontSize:13}}>
+                    «
+                  </button>
+                  <button
+                    onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
+                    style={{padding:"5px 12px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:page===1?"not-allowed":"pointer",opacity:page===1?.5:1,fontFamily:"var(--font)",fontSize:13}}>
+                    ‹ Prev
+                  </button>
+                  {Array.from({length:totalPages},(_,i)=>i+1)
+                    .filter(n => n===1 || n===totalPages || Math.abs(n-page)<=1)
+                    .reduce((acc,n,i,arr)=>{
+                      if(i>0 && n-arr[i-1]>1) acc.push("…");
+                      acc.push(n); return acc;
+                    },[])
+                    .map((n,i) => n==="…"
+                      ? <span key={"e"+i} style={{padding:"5px 4px",color:"var(--text3)"}}>…</span>
+                      : <button key={n} onClick={()=>setPage(n)}
+                          style={{padding:"5px 11px",borderRadius:5,border:"1.5px solid",fontFamily:"var(--font)",fontSize:13,cursor:"pointer",
+                            borderColor:page===n?"var(--primary-dk)":"var(--border)",
+                            background:page===n?"var(--primary-dk)":"var(--surface2)",
+                            color:page===n?"#fff":"var(--text2)"}}>
+                          {n}
+                        </button>
+                    )
+                  }
+                  <button
+                    onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
+                    style={{padding:"5px 12px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:page===totalPages?"not-allowed":"pointer",opacity:page===totalPages?.5:1,fontFamily:"var(--font)",fontSize:13}}>
+                    Next ›
+                  </button>
+                  <button
+                    onClick={()=>setPage(totalPages)} disabled={page===totalPages}
+                    style={{padding:"5px 10px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:page===totalPages?"not-allowed":"pointer",opacity:page===totalPages?.5:1,fontFamily:"var(--font)",fontSize:13}}>
+                    »
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </>
@@ -1194,6 +1107,7 @@ export default function AdminPortal() {
   const [filtered,       setFiltered]       = useState([]);
   const [search,         setSearch]         = useState("");
   const [specEdits,      setSpecEdits]      = useState({});
+  const [usersPage,      setUsersPage]      = useState(1);
 
   // The ID of the currently logged-in admin — used to block self-removal.
   const myUserId = Number(localStorage.getItem("userId") || 0);
@@ -1208,6 +1122,7 @@ export default function AdminPortal() {
       (u.role||"").toLowerCase().includes(q)      ||
       (u.specialization||"").toLowerCase().includes(q)
     ));
+    setUsersPage(1);
   }, [search, users]);
 
   // Fetch all staff users and pre-fill the specEdits map so the
@@ -1259,7 +1174,6 @@ export default function AdminPortal() {
 
   return (
     <>
-      <style>{CSS}</style>
       <ToastContainer position="top-right" autoClose={3000} />
 
       <Topbar role="Admin Portal" />
@@ -1272,18 +1186,18 @@ export default function AdminPortal() {
 
       <div className="main-area">
         {activeTab==="users" && (
-          <div className="workspace">
-            <div className="panel">
-              <div className="panel-top">
-                <div className="panel-heading">Create New User</div>
-                <div className="panel-sub">Add staff accounts to the system</div>
+          <div className="admin-workspace">
+            <div className="admin-panel">
+              <div className="admin-panel-top">
+                <div className="admin-panel-heading">Create New User</div>
+                <div className="admin-panel-sub">Add staff accounts to the system</div>
               </div>
-              <div className="panel-body">
-                <label className="f-lbl">Full Name</label>
+              <div className="admin-panel-body">
+                <label className="admin-f-lbl">Full Name</label>
                 <input className="ctrl" placeholder="Full name…" value={fullName} onChange={e=>setFullName(e.target.value)} />
-                <label className="f-lbl">Email Address</label>
+                <label className="admin-f-lbl">Email Address</label>
                 <input className="ctrl" type="email" placeholder="Email…" value={email} onChange={e=>setEmail(e.target.value)} />
-                <label className="f-lbl">Role</label>
+                <label className="admin-f-lbl">Role</label>
                 <div className="sel">
                   <select className="ctrl" value={role} onChange={e=>{setRole(e.target.value);setSpecialization("");}}>
                     {ROLES.map(r=><option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1).replace("_"," ")}</option>)}
@@ -1307,12 +1221,12 @@ export default function AdminPortal() {
               </div>
             </div>
 
-            <div className="panel">
-              <div className="panel-top">
-                <div className="panel-heading">System Users</div>
-                <div className="panel-sub">Manage all staff accounts and doctor specializations</div>
+            <div className="admin-panel">
+              <div className="admin-panel-top">
+                <div className="admin-panel-heading">System Users</div>
+                <div className="admin-panel-sub">Manage all staff accounts and doctor specializations</div>
               </div>
-              <div className="panel-body">
+              <div className="admin-panel-body">
                 <div className="sec-hd">
                   <span style={{fontSize:13,color:"var(--text3)"}}>{filtered.length} user{filtered.length!==1?"s":""} found</span>
                   <input className="search-input" placeholder="Search by name, email, role…" value={search} onChange={e=>setSearch(e.target.value)} />
@@ -1322,7 +1236,7 @@ export default function AdminPortal() {
                     <thead><tr>{["ID","Name","Email","Role","Specialization","Action"].map(h=><th key={h}>{h}</th>)}</tr></thead>
                     <tbody>
                       {filtered.length===0 && <tr><td colSpan={6} className="tbl-empty">No users found.</td></tr>}
-                      {filtered.map(u=>{
+                      {filtered.slice((usersPage-1)*PAGE_SIZE, usersPage*PAGE_SIZE).map(u=>{
                         const bc=roleBadgeColor(u.role);
                         return (
                           <tr key={u.id}>
@@ -1342,7 +1256,6 @@ export default function AdminPortal() {
                               ):<span style={{color:"var(--text3)",fontSize:13}}>—</span>}
                             </td>
                             <td>
-                              {/* Hide Remove for admin accounts and the currently logged-in user */}
                               {u.role !== "admin" && u.id !== myUserId ? (
                                 <button className="btn-rm" style={{width:"auto",padding:"6px 12px"}} onClick={()=>handleRemove(u.id)}>Remove</button>
                               ) : (
@@ -1355,6 +1268,36 @@ export default function AdminPortal() {
                     </tbody>
                   </table>
                 </div>
+                {(() => {
+                  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+                  if (totalPages <= 1) return null;
+                  return (
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:16,fontSize:13,color:"var(--text2)"}}>
+                      <span>Page {usersPage} of {totalPages} &nbsp;·&nbsp; {filtered.length} user{filtered.length!==1?"s":""}</span>
+                      <div style={{display:"flex",gap:6}}>
+                        <button onClick={()=>setUsersPage(1)} disabled={usersPage===1}
+                          style={{padding:"5px 10px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:usersPage===1?"not-allowed":"pointer",opacity:usersPage===1?.5:1,fontFamily:"var(--font)",fontSize:13}}>«</button>
+                        <button onClick={()=>setUsersPage(p=>Math.max(1,p-1))} disabled={usersPage===1}
+                          style={{padding:"5px 12px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:usersPage===1?"not-allowed":"pointer",opacity:usersPage===1?.5:1,fontFamily:"var(--font)",fontSize:13}}>‹ Prev</button>
+                        {Array.from({length:totalPages},(_,i)=>i+1)
+                          .filter(n=>n===1||n===totalPages||Math.abs(n-usersPage)<=1)
+                          .reduce((acc,n,i,arr)=>{if(i>0&&n-arr[i-1]>1)acc.push("…");acc.push(n);return acc;},[])
+                          .map((n,i)=>n==="…"
+                            ?<span key={"e"+i} style={{padding:"5px 4px",color:"var(--text3)"}}>…</span>
+                            :<button key={n} onClick={()=>setUsersPage(n)}
+                              style={{padding:"5px 11px",borderRadius:5,border:"1.5px solid",fontFamily:"var(--font)",fontSize:13,cursor:"pointer",
+                                borderColor:usersPage===n?"var(--primary-dk)":"var(--border)",
+                                background:usersPage===n?"var(--primary-dk)":"var(--surface2)",
+                                color:usersPage===n?"#fff":"var(--text2)"}}>{n}</button>
+                          )}
+                        <button onClick={()=>setUsersPage(p=>Math.min(totalPages,p+1))} disabled={usersPage===totalPages}
+                          style={{padding:"5px 12px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:usersPage===totalPages?"not-allowed":"pointer",opacity:usersPage===totalPages?.5:1,fontFamily:"var(--font)",fontSize:13}}>Next ›</button>
+                        <button onClick={()=>setUsersPage(totalPages)} disabled={usersPage===totalPages}
+                          style={{padding:"5px 10px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:usersPage===totalPages?"not-allowed":"pointer",opacity:usersPage===totalPages?.5:1,fontFamily:"var(--font)",fontSize:13}}>»</button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

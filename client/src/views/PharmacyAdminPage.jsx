@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../styles/pharmacy-admin.css";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
@@ -21,73 +22,6 @@ const FORM_FIELDS = [
   ["threshold",    "Low Stock Threshold",      false],
 ];
 
-const CSS = `
-.tabs{display:flex;border-bottom:2px solid var(--border);padding:0 36px;background:var(--surface);}
-.tab{font-family:var(--font);font-size:14px;font-weight:600;color:var(--text3);background:none;border:none;padding:14px 22px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;}
-.tab:hover{color:var(--primary);}
-.tab.active{color:var(--primary-dk);border-bottom-color:var(--primary-dk);}
-.main{padding:32px 36px;min-height:calc(100vh - 116px);}
-.stat-row{display:grid;gap:20px;margin-bottom:28px;}
-.stat-3{grid-template-columns:repeat(3,1fr);}
-.stat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px 22px;}
-.stat-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:6px;}
-.stat-val{font-family:var(--font-serif);font-size:28px;font-weight:600;color:var(--primary-dk);}
-.stat-sub{font-size:12.5px;color:var(--text3);margin-top:3px;}
-.bl-primary{border-left:4px solid var(--primary-dk);}
-.bl-accent{border-left:4px solid var(--accent);}
-.bl-success{border-left:4px solid var(--success);}
-.conf-ring{display:flex;align-items:center;gap:20px;}
-.conf-circle{position:relative;width:72px;height:72px;flex-shrink:0;}
-.conf-circle svg{transform:rotate(-90deg);}
-.conf-circle-bg{fill:none;stroke:var(--surface2);stroke-width:7;}
-.conf-circle-fill{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
-.conf-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:16px;font-weight:700;color:var(--primary-dk);}
-.conf-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;}
-.conf-sub{font-size:13px;color:var(--text3);}
-.pa-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:28px;}
-.pa-panel-hd{padding:18px 24px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.pa-panel-title{font-family:var(--font-serif);font-size:17px;font-weight:600;color:var(--primary-dk);}
-.pa-panel-sub{font-size:13px;color:var(--text3);margin-top:2px;}
-.pa-panel-body{padding:22px 24px;}
-.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;}
-.top5-list{display:flex;flex-direction:column;gap:14px;}
-.top5-row{display:flex;align-items:center;gap:14px;}
-.top5-rank{width:28px;height:28px;border-radius:50%;background:var(--primary-lt);color:var(--primary-dk);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.top5-rank.gold{background:#FEF9C3;color:#92400E;}
-.top5-info{flex:1;}
-.top5-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
-.top5-bar-bg{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;}
-.top5-bar-fill{height:7px;border-radius:4px;transition:width .5s ease;}
-.top5-right{text-align:right;flex-shrink:0;min-width:90px;}
-.top5-sold{font-size:14px;font-weight:700;color:var(--primary-dk);}
-.top5-conf{font-size:11.5px;color:var(--text3);margin-top:2px;}
-.trend-up{color:var(--success);font-weight:700;font-size:13px;}
-.trend-dn{color:var(--danger);font-weight:700;font-size:13px;}
-.trend-st{color:var(--text3);font-weight:700;font-size:13px;}
-.tbl-wrap{overflow-x:auto;}
-.tbl-empty{text-align:center;padding:40px;color:var(--text3);}
-.b-ok{background:var(--success-lt);color:var(--success);}
-.b-exp{background:#F3F4F6;color:var(--text3);}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.btn-secondary{font-family:var(--font);font-size:14px;font-weight:600;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);padding:10px 22px;border-radius:6px;cursor:pointer;transition:.15s;}
-.btn-secondary:hover{background:var(--border);}
-.btn-edit{background:var(--warn-lt);color:var(--warn);border:1px solid #F0C674;border-radius:5px;padding:5px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;margin-right:6px;transition:.15s;}
-.btn-edit:hover{background:#F0C674;}
-.btn-del{background:var(--danger-lt);color:var(--danger);border:1px solid #F5B7B1;border-radius:5px;padding:5px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
-.btn-del:hover{background:var(--danger);color:#fff;}
-.search-ctrl{padding:10px 14px;border:1.5px solid var(--border);border-radius:6px;font-family:var(--font);font-size:14px;background:var(--surface2);outline:none;width:260px;transition:.15s;}
-.search-ctrl:focus{border-color:var(--accent);background:#fff;}
-.search-ctrl::placeholder{color:var(--text3);}
-.pa-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:500;padding:24px;}
-.pa-modal-box{background:var(--surface);border-radius:12px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
-.pa-modal-box::-webkit-scrollbar{width:5px;}
-.pa-modal-box::-webkit-scrollbar-thumb{background:var(--border-dk);border-radius:3px;}
-.modal-head{background:var(--primary-dk);padding:18px 24px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0;}
-.modal-head-title{font-family:var(--font-serif);font-size:17px;color:#fff;}
-.modal-body{padding:24px;}
-.loading-state{text-align:center;padding:80px;color:var(--text3);font-size:14px;}
-@media(max-width:1100px){.chart-row{grid-template-columns:1fr;}.stat-3{grid-template-columns:1fr 1fr;}}
-`;
 
 /* Confidence Ring */
 const ConfRing = ({ pct }) => {
@@ -214,7 +148,6 @@ export default function PharmacyAdminPage() {
 
   return (
     <>
-      <style>{CSS}</style>
       <ToastContainer position="top-right" autoClose={3000} />
 
       <Topbar role="Pharmacy Admin" />
@@ -225,7 +158,7 @@ export default function PharmacyAdminPage() {
         ))}
       </nav>
 
-      <div className="main">
+      <div className="pa-main">
 
         {/* ══ INVENTORY ══ */}
         {tab === "inventory" && (

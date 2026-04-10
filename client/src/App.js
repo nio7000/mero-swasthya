@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Login             from "./views/Login.jsx";
 import Signup            from "./views/Signup.jsx";
@@ -15,6 +15,19 @@ import ReceptionistPortal from "./views/ReceptionistPortal.jsx";
 import CounterPortal     from "./views/CounterPortal.jsx";
 import InvoicePage       from "./views/InvoicePage.jsx";
 import ProtectedRoute    from "./components/ProtectedRoute.jsx";
+import { STORAGE_KEYS, ROLE_ROUTES } from "./constants";
+
+// Returns the logged-in user's portal path, or null if not authenticated / token expired
+function getPortal() {
+  const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+  const role  = localStorage.getItem(STORAGE_KEYS.ROLE);
+  if (!token || !role) return null;
+  try {
+    const { exp } = JSON.parse(atob(token.split(".")[1]));
+    if (exp && Date.now() / 1000 > exp) { localStorage.clear(); return null; }
+  } catch { localStorage.clear(); return null; }
+  return ROLE_ROUTES[role] || null;
+}
 
 export default function App() {
   return (
@@ -22,9 +35,24 @@ export default function App() {
       <Routes>
         <Route path="/"                element={<Login />} />
         <Route path="/register"        element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/change-password" element={<ChangePassword />} />
-        <Route path="/setup-account"   element={<SetupAccount />} />
+
+        {/* Only accessible when NOT logged in */}
+        <Route path="/forgot-password" element={
+          (() => { const p = getPortal(); return p ? <Navigate to={p} replace /> : <ForgotPassword />; })()
+        } />
+        <Route path="/setup-account" element={
+          (() => { const p = getPortal(); return p ? <Navigate to={p} replace /> : <SetupAccount />; })()
+        } />
+
+        {/* Only accessible when logged in AND password change is required */}
+        <Route path="/change-password" element={
+          (() => {
+            const p = getPortal();
+            if (!p) return <Navigate to="/" replace />;
+            if (!localStorage.getItem("mustChangePassword")) return <Navigate to={p} replace />;
+            return <ChangePassword />;
+          })()
+        } />
 
         <Route path="/doctorportal"  element={<ProtectedRoute element={<DoctorPortal />} />} />
         <Route path="/pharmacy"      element={<ProtectedRoute element={<PharmacyPortal />} />} />

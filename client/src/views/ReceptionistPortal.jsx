@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../styles/receptionist-portal.css";
 import QRCode from "react-qr-code";
 import apiClient, { authHeader } from "../utils/api";
 import { STORAGE_KEYS, FEES, PHONE_REGEX, HOSPITAL_NAME, HOSPITAL_ADDR, HOSPITAL_PHONE } from "../constants";
@@ -17,77 +18,6 @@ const assignDoctorFromDB = async (visitReason) => {
 };
 
 /* ── CSS ── */
-const CSS = `
-.pid-chip{display:flex;align-items:center;gap:12px;background:var(--primary-lt);border:1px solid #AED6F1;border-radius:6px;padding:10px 16px;margin-bottom:20px;}
-.pid-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--accent);}
-.pid-val{font-size:17px;font-weight:700;color:var(--primary-dk);font-family:var(--font-serif);}
-.mode-tabs{display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:24px;}
-.mode-tab{flex:1;padding:11px;font-family:var(--font);font-size:13.5px;font-weight:600;border:none;cursor:pointer;transition:.15s;background:var(--surface2);color:var(--text3);}
-.mode-tab.active{background:var(--primary-dk);color:#fff;}
-.mode-tab:first-child{border-right:1.5px solid var(--border);}
-.fu-lookup{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
-.fu-lookup-head{background:var(--surface2);padding:16px 20px;border-bottom:1.5px solid var(--border);}
-.fu-lookup-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--primary);margin-bottom:4px;}
-.fu-lookup-sub{font-size:13px;color:var(--text3);}
-.fu-lookup-body{padding:20px;}
-.patient-card{background:var(--primary-lt);border:1.5px solid #AED6F1;border-radius:8px;padding:16px 18px;margin-top:16px;}
-.patient-card-name{font-family:var(--font-serif);font-size:18px;font-weight:600;color:var(--primary-dk);margin-bottom:8px;}
-.patient-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.patient-card-item{}
-.patient-card-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--accent);margin-bottom:2px;}
-.patient-card-val{font-size:14px;color:var(--text);}
-.followup-banner{display:flex;align-items:flex-start;gap:14px;background:var(--success-lt);border:1.5px solid #A9DFBF;border-left:4px solid var(--success);border-radius:8px;padding:14px 18px;margin-top:16px;}
-.followup-banner-icon{font-size:22px;flex-shrink:0;}
-.followup-banner-title{font-size:14px;font-weight:700;color:var(--success);margin-bottom:3px;}
-.followup-banner-sub{font-size:13px;color:#1a5c34;}
-.not-found-box{background:var(--danger-lt);border:1.5px solid #F5B7B1;border-radius:8px;padding:14px 18px;margin-top:16px;font-size:13.5px;color:var(--danger);}
-.doctor-box{margin-top:10px;border:1.5px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:14px 16px;background:var(--surface2);}
-.doctor-box-tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:6px;}
-.doctor-box-name{font-size:16px;font-weight:700;color:var(--primary-dk);}
-.doctor-box-spec{font-size:13px;color:var(--accent);font-weight:500;margin-top:2px;}
-.doctor-box-reason{font-size:12.5px;color:var(--text3);margin-top:5px;font-style:italic;}
-.ai-typing{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3);margin-top:10px;}
-.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:bounce .8s infinite;}
-.ai-dot:nth-child(2){animation-delay:.15s;}
-.ai-dot:nth-child(3){animation-delay:.3s;}
-@keyframes bounce{0%,80%,100%{transform:scale(0);}40%{transform:scale(1);}}
-.fee-box{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;padding:13px 16px;margin-top:16px;}
-.fee-box.free{background:var(--success-lt);border-color:#A9DFBF;}
-.fee-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);}
-.fee-box.free .fee-label{color:var(--success);}
-.fee-val{font-size:20px;font-weight:700;color:var(--primary-dk);}
-.fee-box.free .fee-val{color:var(--success);}
-.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-.pay-btn{padding:12px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
-.pay-btn.active{border-color:var(--accent);background:var(--primary-lt);color:var(--primary-dk);}
-.qr-confirmed{font-size:13px;color:var(--accent);font-weight:600;margin-top:8px;padding:8px 12px;background:var(--primary-lt);border-radius:5px;border:1px solid #AED6F1;}
-.f-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.f-lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:6px;margin-top:16px;}
-.f-lbl:first-child{margin-top:0;}
-.ctrl:read-only{background:#F0F4F8;color:var(--text2);cursor:default;}
-.btn-register{width:100%;padding:14px;background:var(--primary-dk);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:.15s;box-shadow:0 3px 10px rgba(21,67,96,.25);margin-top:20px;}
-.btn-register:hover{background:var(--primary);}
-.btn-register:disabled{background:var(--border-dk);cursor:not-allowed;box-shadow:none;}
-.btn-register.success-btn{background:var(--success);}
-.btn-register.success-btn:hover{background:#1a7a40;}
-.inv-section-head{display:flex;align-items:center;justify-content:space-between;margin-top:28px;margin-bottom:10px;}
-.inv-section-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);}
-.btn-print{font-family:var(--font);font-size:13px;font-weight:600;background:var(--primary-dk);color:#fff;border:none;border-radius:4px;padding:6px 16px;cursor:pointer;transition:.15s;}
-.btn-print:hover{background:var(--primary);}
-.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.tbl-wrap{overflow-x:auto;}
-.tbl-empty{text-align:center;padding:48px;color:var(--text3);font-size:14px;}
-.search-input{padding:10px 14px;border:1.5px solid var(--border);border-radius:6px;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface2);outline:none;width:300px;transition:.15s;}
-.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,134,193,.12);background:#fff;}
-.search-input::placeholder{color:var(--text3);}
-.modal-sub{font-size:13px;color:var(--text3);margin-bottom:20px;}
-.modal-amount{font-size:17px;color:var(--text2);margin:18px 0;}
-@media(max-width:1024px){
-  .workspace{grid-template-columns:1fr;height:auto;}
-  .panel{border-right:none;border-bottom:2px solid var(--border);}
-  .scroll{max-height:none;}
-}
-`;
 
 /* ── Invoice Card ── */
 const InvoiceCard = ({ invoice }) => {
@@ -201,6 +131,7 @@ export default function ReceptionistPortal() {
   const [patients,    setPatients]    = useState([]);
   const [filtered,    setFiltered]    = useState([]);
   const [search,      setSearch]      = useState("");
+  const [patientsPage, setPatientsPage] = useState(1);
   const [doctors,     setDoctors]     = useState([]);
   const [showQR,      setShowQR]      = useState(false);
   const [qrPaid,      setQrPaid]      = useState(false);
@@ -232,6 +163,7 @@ export default function ReceptionistPortal() {
       p.address.toLowerCase().includes(q) ||
       p.patient_id.toLowerCase().includes(q)
     ));
+    setPatientsPage(1);
   }, [search, patients]);
 
   /* AI for new patient */
@@ -439,39 +371,11 @@ export default function ReceptionistPortal() {
     finally { setLoading(false); }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const el = document.getElementById("consult-invoice-print");
     if (!el) return;
-    const printCSS = `
-      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;600&display=swap');
-      *{box-sizing:border-box;margin:0;padding:0;}
-      :root{--primary:#1B4F72;--primary-dk:#154360;--primary-lt:#D6EAF8;--accent:#2E86C1;--success:#1E8449;--success-lt:#D5F5E3;--border:#CDD5DF;--text:#1A202C;--text2:#374151;--text3:#6B7280;--surface:#fff;--surface2:#F4F6F9;--font:'IBM Plex Sans',sans-serif;--font-serif:'IBM Plex Serif',serif;}
-      body{font-family:var(--font);font-size:14px;color:var(--text);background:#fff;padding:24px;}
-      .inv-wrap{border-radius:10px;overflow:hidden;border:1.5px solid var(--border);}
-      .inv-head{background:var(--primary-dk);padding:22px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-logo-row{display:flex;align-items:center;gap:14px;}
-      .inv-logo{width:48px;height:48px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-hospital{font-family:var(--font-serif);font-size:19px;color:#fff;margin-bottom:3px;}
-      .inv-meta{font-size:12.5px;color:#AED6F1;line-height:1.7;}
-      .inv-badges{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
-      .inv-badge{background:rgba(255,255,255,.15);padding:9px 14px;border-radius:6px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-badge-label{font-size:10px;color:#AED6F1;text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px;}
-      .inv-badge-val{font-size:16px;font-weight:700;color:#fff;}
-      .inv-body{padding:24px 28px;}
-      .inv-patient-row{display:flex;justify-content:space-between;margin-bottom:20px;}
-      .inv-patient-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6B7280;margin-bottom:4px;}
-      .inv-patient-name{font-size:16px;font-weight:600;color:#1A202C;}
-      .inv-patient-sub{font-size:13px;color:#6B7280;}
-      .inv-tbl{width:100%;border-collapse:collapse;font-size:14px;}
-      .inv-tbl th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#374151;border-bottom:1.5px solid #CDD5DF;background:#E8EEF5;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .inv-tbl td{padding:10px 12px;border-bottom:1px solid #CDD5DF;color:#1A202C;}
-      .inv-tbl tr:last-child td{border-bottom:none;}
-      .inv-total-box{max-width:280px;margin-left:auto;margin-top:18px;padding:16px 18px;border:1.5px solid #CDD5DF;border-radius:8px;}
-      .inv-total-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;}
-      .inv-total-grand{font-size:16px;font-weight:700;color:#154360;border-top:1.5px solid #CDD5DF;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between;}
-      .inv-pay-note{font-size:12px;color:#6B7280;border-top:1px dashed #CDD5DF;margin-top:10px;padding-top:10px;}
-      .inv-foot{padding:14px 28px;border-top:1.5px solid #CDD5DF;font-size:13px;color:#6B7280;}
-    `;
+    const res = await fetch("/print-invoice.css");
+    const printCSS = await res.text();
     const iframe = document.createElement("iframe");
     Object.assign(iframe.style, { position:"absolute", width:"0", height:"0", border:"none" });
     document.body.appendChild(iframe);
@@ -487,7 +391,6 @@ export default function ReceptionistPortal() {
 
   return (
     <>
-      <style>{CSS}</style>
       <ToastContainer position="top-right" autoClose={3000} />
 
       <Topbar role="Receptionist Portal" />
@@ -785,7 +688,7 @@ export default function ReceptionistPortal() {
                 <thead><tr>{["Patient ID","Name","Age","Sex","Contact","Address"].map(h=><th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
                   {filtered.length===0 && <tr><td colSpan={6} className="tbl-empty">No patients found.</td></tr>}
-                  {filtered.map(p => (
+                  {filtered.slice((patientsPage-1)*15, patientsPage*15).map(p => (
                     <tr key={p.patient_id}>
                       <td>{p.patient_id}</td>
                       <td style={{fontWeight:600}}>{p.name}</td>
@@ -796,6 +699,36 @@ export default function ReceptionistPortal() {
                 </tbody>
               </table>
             </div>
+            {(() => {
+              const totalPages = Math.ceil(filtered.length / 15);
+              if (totalPages <= 1) return null;
+              return (
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"12px 0 4px",fontSize:13,color:"var(--text2)"}}>
+                  <span>Page {patientsPage} of {totalPages} &nbsp;·&nbsp; {filtered.length} patient{filtered.length!==1?"s":""}</span>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>setPatientsPage(1)} disabled={patientsPage===1}
+                      style={{padding:"5px 10px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:patientsPage===1?"not-allowed":"pointer",opacity:patientsPage===1?.5:1,fontFamily:"var(--font)",fontSize:13}}>«</button>
+                    <button onClick={()=>setPatientsPage(p=>Math.max(1,p-1))} disabled={patientsPage===1}
+                      style={{padding:"5px 12px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:patientsPage===1?"not-allowed":"pointer",opacity:patientsPage===1?.5:1,fontFamily:"var(--font)",fontSize:13}}>‹ Prev</button>
+                    {Array.from({length:totalPages},(_,i)=>i+1)
+                      .filter(n=>n===1||n===totalPages||Math.abs(n-patientsPage)<=1)
+                      .reduce((acc,n,i,arr)=>{if(i>0&&n-arr[i-1]>1)acc.push("…");acc.push(n);return acc;},[])
+                      .map((n,i)=>n==="…"
+                        ?<span key={"e"+i} style={{padding:"5px 4px",color:"var(--text3)"}}>…</span>
+                        :<button key={n} onClick={()=>setPatientsPage(n)}
+                          style={{padding:"5px 11px",borderRadius:5,border:"1.5px solid",fontFamily:"var(--font)",fontSize:13,cursor:"pointer",
+                            borderColor:patientsPage===n?"var(--primary-dk)":"var(--border)",
+                            background:patientsPage===n?"var(--primary-dk)":"var(--surface2)",
+                            color:patientsPage===n?"#fff":"var(--text2)"}}>{n}</button>
+                      )}
+                    <button onClick={()=>setPatientsPage(p=>Math.min(totalPages,p+1))} disabled={patientsPage===totalPages}
+                      style={{padding:"5px 12px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:patientsPage===totalPages?"not-allowed":"pointer",opacity:patientsPage===totalPages?.5:1,fontFamily:"var(--font)",fontSize:13}}>Next ›</button>
+                    <button onClick={()=>setPatientsPage(totalPages)} disabled={patientsPage===totalPages}
+                      style={{padding:"5px 10px",borderRadius:5,border:"1.5px solid var(--border)",background:"var(--surface2)",color:"var(--text2)",cursor:patientsPage===totalPages?"not-allowed":"pointer",opacity:patientsPage===totalPages?.5:1,fontFamily:"var(--font)",fontSize:13}}>»</button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../styles/doctor-portal.css";
 import apiClient, { authHeader, getToken } from "../utils/api";
 import { fmtDate } from "../utils/date";
 import { currency } from "../utils/format";
@@ -15,40 +16,6 @@ const isValidTest = (t) => { const n = typeof t==="string"?t:t?.test_name; retur
 const decodeToken = (t) => { try { return JSON.parse(atob(t.split(".")[1])); } catch { return null; } };
 
 /* ── CSS ── */
-const CSS = `
-.rx-body{padding:16px 18px;}
-.sub-lbl{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin:16px 0 8px;}
-.sub-lbl:first-child{margin-top:0;}
-.rx-foot{margin-top:14px;padding-top:12px;border-top:1.5px dashed var(--border);display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text3);}
-.rx-foot strong{color:var(--text2);font-weight:600;}
-.btn-followup{font-family:var(--font);font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:5px;border:1.5px solid #AED6F1;background:var(--primary-lt);color:var(--primary-dk);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px;}
-.btn-followup:hover{background:#AED6F1;border-color:var(--accent);}
-.btn-followup.assigned{background:var(--success-lt);border-color:#A9DFBF;color:var(--success);}
-.btn-followup.assigned:hover{background:#A9DFBF;}
-.followup-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--success);background:var(--success-lt);border:1px solid #A9DFBF;padding:4px 10px;border-radius:4px;}
-.ai-card{border:1.5px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;margin-bottom:20px;overflow:hidden;}
-.ai-card-head{background:#EAF3FB;padding:13px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.ai-name{font-size:16px;font-weight:600;color:var(--primary-dk);}
-.ai-badge{font-size:11.5px;font-weight:700;color:var(--accent);background:#D6EAF8;border:1px solid #AED6F1;padding:3px 10px;border-radius:3px;letter-spacing:.4px;text-transform:uppercase;}
-.ai-info-row{display:flex;gap:28px;flex-wrap:wrap;padding:10px 18px;background:var(--surface2);border-bottom:1.5px solid var(--border);font-size:14px;color:var(--text2);}
-.ai-info-row strong{color:var(--text);font-weight:600;}
-.ai-body{padding:16px 18px;}
-.med-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;}
-.med-name{position:relative;flex:2.2;}
-.med-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;background:#fff;border:1.5px solid var(--border-dk);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.14);overflow:hidden;max-height:180px;overflow-y:auto;}
-.med-opt{padding:11px 14px;font-size:14.5px;cursor:pointer;color:var(--text);border-bottom:1px solid var(--border);transition:background .12s;}
-.med-opt:last-child{border-bottom:none;}
-.med-opt:hover{background:var(--primary-lt);}
-.btn-add{display:inline-flex;align-items:center;gap:5px;font-family:var(--font);font-size:14px;font-weight:600;padding:9px 18px;border-radius:5px;border:1.5px solid;cursor:pointer;letter-spacing:.2px;transition:.15s;margin-top:4px;}
-.btn-add-p{color:var(--primary);background:var(--primary-lt);border-color:#AED6F1;}
-.btn-add-p:hover{background:#AED6F1;border-color:var(--accent);}
-.btn-add-s{color:var(--text2);background:var(--surface2);border-color:var(--border);}
-.btn-add-s:hover{background:var(--border);border-color:var(--border-dk);}
-.btn-save{width:100%;padding:15px;background:var(--primary-dk);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.4px;margin-top:28px;transition:.15s;box-shadow:0 3px 10px rgba(21,67,96,.3);}
-.btn-save:hover{background:var(--primary);}
-.btn-save:active{transform:scale(.99);}
-.patient-tag{display:inline-flex;align-items:center;background:var(--primary-lt);color:var(--primary-dk);font-size:14px;font-weight:600;padding:4px 14px;border-radius:4px;border:1px solid #AED6F1;}
-`;
 
 export default function DoctorPortal() {
   const [reports,          setReports]          = useState([]);
@@ -161,7 +128,10 @@ export default function DoctorPortal() {
   const handleSubmit = async () => {
     if (!selectedPatientId) return toast.warn("Please select a patient first.");
     if (!diagnosis.trim())  return toast.warn("Diagnosis is required.");
-    const validMeds  = medicines.filter(m => m.name.trim() || m.dose.trim() || m.duration.trim());
+    const filledMeds = medicines.filter(m => m.name.trim() || m.dose.trim() || m.timing.trim() || m.duration.trim());
+    const incomplete = filledMeds.find(m => !m.name.trim() || !m.dose.trim() || !m.timing.trim() || !m.duration.trim());
+    if (incomplete) return toast.warn("Please fill in dose, timing, and duration for all medicines.");
+    const validMeds  = filledMeds;
     const validTests = tests.filter(t => t?.trim());
     try {
       await apiClient.post(
@@ -207,7 +177,6 @@ export default function DoctorPortal() {
 
   return (
     <>
-      <style>{CSS}</style>
       <ToastContainer position="top-right" autoClose={3000} />
 
       <Topbar role="Doctor Portal" />
