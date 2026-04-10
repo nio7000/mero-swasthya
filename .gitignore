@@ -13,15 +13,9 @@ client/.env
 
 # OS
 .DS_Store
-*.DS_Store
 
 # IDE
 .vscode/
-.idea/
 
 # Logs
 *.log
-
-# Build
-dist/
-build/
