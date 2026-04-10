@@ -19,9 +19,6 @@ client/.env
 .vscode/
 .idea/
 
-# Claude Code
-.claude/
-
 # Logs
 *.log
 
