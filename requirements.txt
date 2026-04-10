@@ -1,10 +1,26 @@
+# Web framework
 fastapi
-uvicorn
+uvicorn[standard]
+
+# Database
+sqlalchemy
+psycopg2-binary
+
+# Auth
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Config / utils
+python-dotenv
+python-multipart
+pydantic
+
+# ML / AI
+scikit-learn
 torch
 transformers
 easyocr
-pillow
 opencv-python
 spacy
-python-multipart
 numpy
+pillow

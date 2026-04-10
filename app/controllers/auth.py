@@ -138,21 +138,23 @@ def change_password(
 def forgot_password(data: dict = Body(...), db: Session = Depends(get_db)):
     """
     Expects: { email }
-    Generates a random temporary password, saves it, emails it, marks must_change_password=True.
+    Sends a 6-digit OTP to the user's email. They then verify via /auth/setup-account
+    and are redirected to /change-password to set a new password.
     Always returns 200 to avoid email enumeration.
     """
     email = (data.get("email") or "").strip().lower()
     user = db.query(User).filter(User.email == email).first()
 
-    if user:
-        temp_pw = generate_temp_password()
-        user.password = hash_password(temp_pw)
-        user.must_change_password = True
-        db.commit()
-        try:
-            send_temp_password_email(user.email, user.full_name, temp_pw)
-        except Exception:
-            pass  # silently fail — we already saved the new password
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with that email address.")
+
+    user.must_change_password = True
+    db.commit()
+    try:
+        otp = generate_otp(user.email)
+        send_otp_email(user.email, user.full_name, otp)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to send OTP. Please try again.")
 
     return {"message": "If that email is registered, a temporary password has been sent"}
 

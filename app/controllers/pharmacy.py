@@ -140,9 +140,18 @@ def create_bill(data: dict = Body(...), db: Session = Depends(get_db), _=Depends
     total    = sum(item.get("price", 0) * item.get("qty", 0) for item in cart)
     discount = data.get("discount", 0)
     net      = total - total * (discount / 100)
-    details  = [{"description": i.get("medicine_name", "Medicine"), "qty": i.get("qty", 1),
-                 "price": round(i.get("price", 0), 2), "subtotal": round(i.get("price", 0) * i.get("qty", 1), 2)}
-                for i in cart]
+
+    details = []
+    for i in cart:
+        med = db.query(Medicine).filter(Medicine.medicine_id == i.get("medicine_id")).first()
+        details.append({
+            "description":  (med.name if med else None) or i.get("medicine_name") or "Medicine",
+            "strength":     med.strength if med else None,
+            "manufacturer": med.manufacturer if med else None,
+            "qty":          i.get("qty", 1),
+            "price":        round(i.get("price", 0), 2),
+            "subtotal":     round(i.get("price", 0) * i.get("qty", 1), 2),
+        })
 
     bill = Bill(patient_id=pid, total_amount=total, discount=discount, net_total=net,
                 payment_method=data.get("payment_method", "cash"), bill_type="pharmacy",
