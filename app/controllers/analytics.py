@@ -1,3 +1,10 @@
+# Analytics endpoints — admin dashboard stats and pharmacy ML predictions.
+#
+# /admin/analytics/       → basic revenue and diagnosis stats
+# /admin/analytics-v2/    → full dashboard: visits, revenue by type, ML revenue forecast, doctor workload
+# /pharmacy-admin/analytics/        → pharmacy-specific totals and low-stock alerts
+# /pharmacy-admin/ml-predictions/   → linear regression demand forecast per medicine
+
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
@@ -11,6 +18,7 @@ from app.models import User, Patient, Prescription, Bill, Medicine, Role
 
 router = APIRouter(tags=["Analytics"])
 
+# Used to estimate revenue from consultations and tests where exact billing may vary
 CONSULT_FEE  = 500
 AVG_TEST_FEE = 300
 TEST_RATIO   = 0.4
@@ -21,19 +29,22 @@ def get_analytics(db: Session = Depends(get_db), user: User = Depends(get_curren
     if user.role != "admin":
         raise HTTPException(403, "Access denied")
 
-    bills   = db.query(Bill).all()
-    now     = datetime.utcnow()
+    bills = db.query(Bill).all()
+    now   = datetime.utcnow()
+
+    # Aggregate revenue by calendar month for the chart
     monthly = defaultdict(float)
     for b in bills:
         if b.paid_at:
             monthly[b.paid_at.strftime("%b %Y")] += float(b.net_total or 0)
 
+    # Sort chronologically and take last 6 months
     revenue_by_month = [
         {"month": k, "revenue": v}
         for k, v in sorted(monthly.items(), key=lambda x: datetime.strptime(x[0], "%b %Y"))
     ][-6:]
 
-    diagnoses    = db.query(Prescription).all()
+    diagnoses = db.query(Prescription).all()
     top_diagnoses = [
         {"diagnosis": d, "count": c}
         for d, c in Counter(p.diagnosis for p in diagnoses if p.diagnosis).most_common(5)
@@ -65,29 +76,29 @@ def get_analytics_v2(db: Session = Depends(get_db), user: User = Depends(get_cur
     bills         = db.query(Bill).all()
     prescriptions = db.query(Prescription).all()
 
-    # Split bills by actual type
-    pharmacy_bills    = [b for b in bills if b.bill_type == "pharmacy"]
-    consult_bills     = [b for b in bills if b.bill_type == "consultation"]
-    test_bills        = [b for b in bills if b.bill_type == "test"]
+    # Split bills by type to show revenue breakdown in the dashboard
+    pharmacy_bills = [b for b in bills if b.bill_type == "pharmacy"]
+    consult_bills  = [b for b in bills if b.bill_type == "consultation"]
+    test_bills     = [b for b in bills if b.bill_type == "test"]
 
     pharmacy_total = sum(b.net_total or 0 for b in pharmacy_bills)
     consult_total  = sum(b.net_total or 0 for b in consult_bills)
     test_total     = sum(b.net_total or 0 for b in test_bills)
     total_revenue  = pharmacy_total + consult_total + test_total
 
-    # This-month bills — fallback to latest month if current month has no data
+    # Current month revenue — fall back to latest available month if this month has no data yet
     bills_month = [b for b in bills if b.paid_at and b.paid_at >= month_start]
     if not bills_month:
-        latest = max((b.paid_at for b in bills if b.paid_at), default=now)
+        latest      = max((b.paid_at for b in bills if b.paid_at), default=now)
         bills_month = [b for b in bills if b.paid_at and b.paid_at >= latest.replace(day=1)]
     revenue_month = sum(b.net_total or 0 for b in bills_month)
 
-    # Visits counted from prescriptions
+    # Visit counts come from prescriptions (one prescription = one visit)
     rx_today = [p for p in prescriptions if p.created_at and p.created_at >= today_start]
     rx_week  = [p for p in prescriptions if p.created_at and p.created_at >= week_start]
     rx_month = [p for p in prescriptions if p.created_at and p.created_at >= month_start]
 
-    # Revenue last 6 months (actual bill data)
+    # Last 6 months revenue for the line chart
     six_ago = (now.replace(day=1) - timedelta(days=5 * 31)).replace(day=1)
     monthly = defaultdict(float)
     for b in bills:
@@ -99,24 +110,27 @@ def get_analytics_v2(db: Session = Depends(get_db), user: User = Depends(get_cur
         for k, v in sorted(monthly.items(), key=lambda x: datetime.strptime(x[0], "%b %Y"))
     ][-6:]
 
-    # ML forecast using last 12 months only
+    # ML revenue forecast using linear regression on the last 12 months
     forecast_next_month = 0
     try:
-        twelve_ago = (now.replace(day=1) - timedelta(days=11 * 31)).replace(day=1)
+        twelve_ago   = (now.replace(day=1) - timedelta(days=11 * 31)).replace(day=1)
         bill_monthly = defaultdict(float)
         for b in bills:
             if b.paid_at and b.paid_at >= twelve_ago:
                 bill_monthly[b.paid_at.strftime("%b %Y")] += float(b.net_total or 0)
+
         sorted_months = sorted(bill_monthly.items(), key=lambda x: datetime.strptime(x[0], "%b %Y"))
+
         if len(sorted_months) >= 3:
             X  = np.array(range(len(sorted_months))).reshape(-1, 1)
             y  = np.array([v for _, v in sorted_months])
             ml = LinearRegression().fit(X, y)
+            # Predict next month (index = len(sorted_months))
             forecast_next_month = max(0, int(ml.predict([[len(sorted_months)]])[0]))
     except Exception:
-        pass
+        pass  # if ML fails for any reason, just return 0
 
-    # Doctor workload from prescriptions
+    # Doctor workload — prescriptions this month and all time per doctor
     doctor_counts_month = Counter()
     doctor_counts_all   = Counter()
     for p in prescriptions:
@@ -156,11 +170,12 @@ def get_analytics_v2(db: Session = Depends(get_db), user: User = Depends(get_cur
 
 @router.get("/pharmacy-admin/analytics/")
 def pharmacy_analytics(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    medicines = db.query(Medicine).all()
-    bills     = db.query(Bill).filter(Bill.bill_type == "pharmacy").all()
-    oldest    = min((b.paid_at for b in bills if b.paid_at), default=datetime.utcnow())
+    medicines   = db.query(Medicine).all()
+    bills       = db.query(Bill).filter(Bill.bill_type == "pharmacy").all()
+    oldest      = min((b.paid_at for b in bills if b.paid_at), default=datetime.utcnow())
     days_active = max((datetime.utcnow() - oldest).days, 1)
 
+    # Flag medicines that are below their reorder threshold
     refill_predictions = []
     for med in medicines:
         if med.quantity is not None and med.threshold and med.quantity < med.threshold:
@@ -168,16 +183,16 @@ def pharmacy_analytics(db: Session = Depends(get_db), _=Depends(get_current_user
                 "name":      med.name,
                 "qty_left":  med.quantity,
                 "threshold": med.threshold,
-                "urgent":    med.quantity == 0,
+                "urgent":    med.quantity == 0,   # completely out of stock
             })
 
     return {
-        "total_medicines":     len(medicines),
-        "low_stock_count":     len(refill_predictions),
-        "total_bills":         len(bills),
-        "total_revenue":       round(sum(b.net_total or 0 for b in bills), 2),
-        "refill_predictions":  refill_predictions[:10],
-        "days_active":         days_active,
+        "total_medicines":    len(medicines),
+        "low_stock_count":    len(refill_predictions),
+        "total_bills":        len(bills),
+        "total_revenue":      round(sum(b.net_total or 0 for b in bills), 2),
+        "refill_predictions": refill_predictions[:10],   # top 10 most urgent
+        "days_active":        days_active,
     }
 
 
@@ -186,7 +201,8 @@ def pharmacy_ml_predictions(db: Session = Depends(get_db), _=Depends(get_current
     from sqlalchemy import func
     from app.models import PrescriptionItem
 
-    # Use prescription_items joined with prescriptions for date — real sales proxy
+    # Use prescription history as a proxy for medicine demand
+    # (billing history would be more accurate but prescriptions are always captured)
     rows = (
         db.query(Medicine.name, Prescription.created_at)
         .join(PrescriptionItem, PrescriptionItem.medicine_id == Medicine.medicine_id)
@@ -208,15 +224,17 @@ def pharmacy_ml_predictions(db: Session = Depends(get_db), _=Depends(get_current
         return {"predictions": [], "confidence": 0, "top5": []}
 
     top5_names = sorted(medicine_total, key=medicine_total.get, reverse=True)[:5]
-    all_names  = list(medicine_total.keys())  # all medicines with sales history
+    all_names  = list(medicine_total.keys())
 
     def build_prediction(name):
         weekly       = medicine_weekly[name]
         sorted_weeks = sorted(weekly.items())
         total        = medicine_total[name]
-        # weekly_avg = mean units prescribed per week
+
+        # Estimate average weekly demand
         weekly_avg = max(1, total // max(1, len(sorted_weeks)))
 
+        # Not enough data for regression — return a stable estimate
         if len(sorted_weeks) < 3:
             return {
                 "medicine":      name,
@@ -234,15 +252,15 @@ def pharmacy_ml_predictions(db: Session = Depends(get_db), _=Depends(get_current
         n     = len(y)
         next4 = [max(0, round(float(model.predict([[n + i]])[0]))) for i in range(4)]
 
-        # Confidence: hold-out last 4 weeks, measure actual forecast error
-        # This is real model performance on unseen data, not a heuristic
+        # Confidence: hold out the last 4 weeks and measure prediction error against actuals
         if n >= 8:
-            hm = LinearRegression().fit(X[:-4], y[:-4])
+            hm          = LinearRegression().fit(X[:-4], y[:-4])
             y_pred_test = hm.predict(X[-4:])
-            mape = float(np.mean(np.abs(y[-4:] - y_pred_test)) / (y[-4:].mean() + 1e-9))
-            confidence = round(max(0.0, min(1.0, 1.0 - mape)), 2)
+            mape        = float(np.mean(np.abs(y[-4:] - y_pred_test)) / (y[-4:].mean() + 1e-9))
+            confidence  = round(max(0.0, min(1.0, 1.0 - mape)), 2)
         else:
-            cv = float(y.std() / y.mean()) if y.mean() > 0 else 1.0
+            # Not enough data for hold-out — use coefficient of variation as a proxy
+            cv         = float(y.std() / y.mean()) if y.mean() > 0 else 1.0
             confidence = round(max(0.0, min(1.0, 1.0 - cv)), 2)
 
         return {
@@ -262,7 +280,7 @@ def pharmacy_ml_predictions(db: Session = Depends(get_db), _=Depends(get_current
     return {
         "top5":            top5_names,
         "predictions":     top5_predictions,
-        "all_predictions": all_predictions,   # for inventory table
+        "all_predictions": all_predictions,   # full table in the pharmacy admin dashboard
         "confidence":      avg_confidence,
         "trained_on":      sum(medicine_total.values()),
         "weeks_of_data":   len(set(wk for wks in medicine_weekly.values() for wk in wks)),

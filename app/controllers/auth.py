@@ -1,3 +1,10 @@
+# Handles all authentication flows:
+# - Login (returns JWT)
+# - Self-registration (OTP flow: send → verify → account created)
+# - Password change (first login or forced reset)
+# - Forgot password (OTP to email → verify → redirect to change-password)
+# - Admin user management (create, list, delete)
+
 from fastapi import APIRouter, Depends, HTTPException, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -13,29 +20,32 @@ from app.utils.email_utils import (
 
 router = APIRouter(tags=["Auth"])
 
+# All admin-created users start with this password and must change it on first login
 TEMP_PASSWORD = "MeroSwasthya@123"
 
 
-# ── LOGIN ────────────────────────────────────────────────────────────────────
+# ── LOGIN ─────────────────────────────────────────────────────────────────────
 @router.post("/auth/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # form_data.username is the email (standard OAuth2 field naming)
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(401, "Invalid credentials")
 
+    # Pack role and user id into the token payload so the frontend knows who's logged in
     token = create_access_token({"sub": user.email, "role": user.role, "id": user.id})
     return {
-        "access_token":       token,
-        "token_type":         "bearer",
-        "email":              user.email,
-        "role":               user.role,
-        "full_name":          user.full_name,
-        "id":                 user.id,
+        "access_token":         token,
+        "token_type":           "bearer",
+        "email":                user.email,
+        "role":                 user.role,
+        "full_name":            user.full_name,
+        "id":                   user.id,
         "must_change_password": bool(user.must_change_password),
     }
 
 
-# ── SELF-REGISTRATION: STEP 1 — send OTP ─────────────────────────────────────
+# ── SELF-REGISTRATION: STEP 1 — send OTP ──────────────────────────────────────
 @router.post("/auth/register/send-otp")
 def register_send_otp(data: dict = Body(...), db: Session = Depends(get_db)):
     """
@@ -48,9 +58,12 @@ def register_send_otp(data: dict = Body(...), db: Session = Depends(get_db)):
         raise HTTPException(400, "Missing required fields: full_name, email, role")
 
     email = data["email"].strip().lower()
+
+    # Don't allow duplicate accounts
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(400, "An account with this email already exists")
 
+    # Make sure the role they picked actually exists in the DB
     role_row = db.query(Role).filter(Role.role == data["role"]).first()
     if not role_row:
         raise HTTPException(400, f"Unknown role: {data['role']}")
@@ -64,13 +77,13 @@ def register_send_otp(data: dict = Body(...), db: Session = Depends(get_db)):
     return {"message": "Verification code sent to your email"}
 
 
-# ── SELF-REGISTRATION: STEP 2 — verify OTP & create account ──────────────────
+# ── SELF-REGISTRATION: STEP 2 — verify OTP & create account ───────────────────
 @router.post("/auth/register/verify-otp")
 def register_verify_otp(data: dict = Body(...), db: Session = Depends(get_db)):
     """
     Expects: { full_name, email, role, specialization?, otp }
     Verifies OTP, creates user with temp password, marks must_change_password=True.
-    Returns a JWT so the frontend can immediately redirect to change-password screen.
+    Returns a JWT so the frontend can immediately redirect to the change-password screen.
     """
     required = ["full_name", "email", "role", "otp"]
     if not all(k in data for k in required):
@@ -81,6 +94,7 @@ def register_verify_otp(data: dict = Body(...), db: Session = Depends(get_db)):
     if not verify_otp(email, data["otp"]):
         raise HTTPException(400, "Invalid or expired verification code")
 
+    # Double-check nobody registered with this email between step 1 and step 2
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(400, "An account with this email already exists")
 
@@ -94,7 +108,7 @@ def register_verify_otp(data: dict = Body(...), db: Session = Depends(get_db)):
         password=hash_password(TEMP_PASSWORD),
         role_id=role_row.role_id,
         specialization=data.get("specialization", ""),
-        must_change_password=True,
+        must_change_password=True,   # force them to set their own password
     )
     db.add(user)
     db.commit()
@@ -102,17 +116,17 @@ def register_verify_otp(data: dict = Body(...), db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.email, "role": user.role, "id": user.id})
     return {
-        "access_token":       token,
-        "token_type":         "bearer",
-        "email":              user.email,
-        "role":               user.role,
-        "full_name":          user.full_name,
-        "id":                 user.id,
+        "access_token":         token,
+        "token_type":           "bearer",
+        "email":                user.email,
+        "role":                 user.role,
+        "full_name":            user.full_name,
+        "id":                   user.id,
         "must_change_password": True,
     }
 
 
-# ── CHANGE PASSWORD (first login / forced) ────────────────────────────────────
+# ── CHANGE PASSWORD (first login / forced reset) ───────────────────────────────
 @router.post("/auth/change-password")
 def change_password(
     data: dict = Body(...),
@@ -121,7 +135,7 @@ def change_password(
 ):
     """
     Expects: { new_password }
-    Sets the new password and clears must_change_password flag.
+    Sets the new password and clears the must_change_password flag.
     """
     new_pw = data.get("new_password", "").strip()
     if len(new_pw) < 8:
@@ -133,23 +147,24 @@ def change_password(
     return {"message": "Password updated successfully"}
 
 
-# ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+# ── FORGOT PASSWORD ────────────────────────────────────────────────────────────
 @router.post("/auth/forgot-password")
 def forgot_password(data: dict = Body(...), db: Session = Depends(get_db)):
     """
     Expects: { email }
-    Sends a 6-digit OTP to the user's email. They then verify via /auth/setup-account
-    and are redirected to /change-password to set a new password.
-    Always returns 200 to avoid email enumeration.
+    Sends a 6-digit OTP to the user's email so they can reset their password.
+    Sets must_change_password=True so they're forced to change after verifying.
     """
     email = (data.get("email") or "").strip().lower()
-    user = db.query(User).filter(User.email == email).first()
+    user  = db.query(User).filter(User.email == email).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="No account found with that email address.")
 
+    # Flag the account so the next login redirects to change-password
     user.must_change_password = True
     db.commit()
+
     try:
         otp = generate_otp(user.email)
         send_otp_email(user.email, user.full_name, otp)
@@ -159,13 +174,13 @@ def forgot_password(data: dict = Body(...), db: Session = Depends(get_db)):
     return {"message": "If that email is registered, a temporary password has been sent"}
 
 
-# ── SETUP ACCOUNT (admin-created users) ──────────────────────────────────────
+# ── SETUP ACCOUNT (for admin-created users on first login) ─────────────────────
 @router.post("/auth/setup-account")
 def setup_account(data: dict = Body(...), db: Session = Depends(get_db)):
     """
     Expects: { email, otp }
     Admin-created users use this to verify their OTP and get a token,
-    then they are redirected to /change-password to set their own password.
+    then they're redirected to /change-password to set their own password.
     """
     email = (data.get("email") or "").strip().lower()
     otp   = (data.get("otp") or "").strip()
@@ -182,17 +197,17 @@ def setup_account(data: dict = Body(...), db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.email, "role": user.role, "id": user.id})
     return {
-        "access_token":        token,
-        "token_type":          "bearer",
-        "email":               user.email,
-        "role":                user.role,
-        "full_name":           user.full_name,
-        "id":                  user.id,
+        "access_token":         token,
+        "token_type":           "bearer",
+        "email":                user.email,
+        "role":                 user.role,
+        "full_name":            user.full_name,
+        "id":                   user.id,
         "must_change_password": True,
     }
 
 
-# ── ADMIN: CREATE USER ────────────────────────────────────────────────────────
+# ── ADMIN: CREATE USER ─────────────────────────────────────────────────────────
 @router.post("/admin/create-user/")
 def create_user(data: dict = Body(...), db: Session = Depends(get_db)):
     required = ["full_name", "email", "role"]
@@ -219,17 +234,18 @@ def create_user(data: dict = Body(...), db: Session = Depends(get_db)):
     db.refresh(u)
 
     # Send OTP so the user can verify and set their own password
+    # If the admin provided a custom password we skip the email
     if not data.get("password"):
         try:
             otp = generate_otp(u.email)
             send_otp_email(u.email, otp, u.full_name)
         except Exception:
-            pass
+            pass  # don't block account creation if email fails
 
     return {"message": f"{u.role.capitalize()} {u.full_name} created"}
 
 
-# ── ADMIN: LIST USERS ─────────────────────────────────────────────────────────
+# ── ADMIN: LIST USERS ──────────────────────────────────────────────────────────
 @router.get("/admin/users/")
 def get_all_users(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.role != "admin":
@@ -247,7 +263,7 @@ def get_all_users(db: Session = Depends(get_db), user: User = Depends(get_curren
     ]
 
 
-# ── ADMIN: DELETE USER ────────────────────────────────────────────────────────
+# ── ADMIN: DELETE USER ─────────────────────────────────────────────────────────
 @router.delete("/admin/delete-user/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.role != "admin":

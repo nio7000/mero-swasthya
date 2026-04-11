@@ -1,3 +1,6 @@
+# Prescription endpoints — used by doctors to write prescriptions and
+# by any portal that needs to display a patient's prescription history.
+
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
@@ -14,6 +17,7 @@ router = APIRouter(tags=["Prescriptions"])
 
 @router.get("/lab/tests")
 def get_lab_tests(db: Session = Depends(get_db)):
+    # Returns the full list of tests so the doctor portal can populate the test picker
     tests = db.query(Test).all()
     return {"tests": [{"id": t.id, "name": t.name, "price": t.price} for t in tests]}
 
@@ -31,6 +35,8 @@ def create_prescription(
     if not pid:
         raise HTTPException(400, "Patient ID required")
 
+    # Create the prescription header first, then flush to get the ID
+    # so child rows (items/tests) can reference it
     rx = Prescription(
         patient_id=pid,
         doctor_id=user.id,
@@ -40,12 +46,15 @@ def create_prescription(
     db.add(rx)
     db.flush()
 
+    # Add medicine line items — handle both id-based and name-based lookups
     for med in data.get("medicines", []):
         if isinstance(med, dict):
             med_id   = med.get("id")
             med_name = med.get("name") or med.get("medicine_name")
+
+            # If no id provided, try to find the medicine by name
             if not med_id and med_name:
-                found = db.query(Medicine).filter(Medicine.name == med_name).first()
+                found  = db.query(Medicine).filter(Medicine.name == med_name).first()
                 med_id = found.id if found else None
 
             db.add(PrescriptionItem(
@@ -56,6 +65,7 @@ def create_prescription(
                 notes=med.get("notes"),
             ))
 
+    # Add ordered lab tests and create corresponding TestRequest rows
     for t in data.get("tests", []):
         if isinstance(t, dict):
             lt_id   = t.get("id") or t.get("test_id")
@@ -63,6 +73,7 @@ def create_prescription(
         else:
             lt_id, lt_name = None, str(t)
 
+        # Skip placeholder values like "No tests selected"
         if not lt_id and lt_name and lt_name.lower() not in ("no tests selected", "no tests", ""):
             found = db.query(Test).filter(Test.name == lt_name).first()
             lt_id = found.id if found else None
@@ -70,7 +81,10 @@ def create_prescription(
         if not lt_id:
             continue
 
+        # Link test to the prescription
         db.add(PrescriptionTest(prescription_id=rx.id, test_id=lt_id))
+
+        # Also create a TestRequest so the technician and counter can see it
         db.add(TestRequest(
             patient_id=pid,
             doctor_id=user.id,
@@ -95,6 +109,7 @@ def get_prescriptions(patient_id: int, db: Session = Depends(get_db)):
 
     output = []
     for p in rows:
+        # Build medicine list with names resolved from the medicine table
         medicines = []
         for item in p.items:
             med_name = item.medicine.name if item.medicine else "Unknown"
@@ -105,12 +120,14 @@ def get_prescriptions(patient_id: int, db: Session = Depends(get_db)):
                 "notes":    item.notes,
             })
 
+        # For each ordered test, find the most recent TestRequest to get live status
         live_tests = []
         for pt in p.ordered_tests:
             if not pt.test_id:
                 continue
             lt_name = pt.test.name if pt.test else "Unknown"
 
+            # Most recent TestRequest for this patient + test combo
             tr = (
                 db.query(TestRequest)
                 .filter(

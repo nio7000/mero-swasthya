@@ -1,3 +1,7 @@
+# Doctor-related endpoints — listing doctors and AI-assisted doctor assignment.
+# The AI assignment uses an ML model to predict the right specialization
+# based on the patient's symptoms, then picks the least-busy matching doctor.
+
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
@@ -8,10 +12,12 @@ from app.ml_triage import predict_specialization
 
 
 def _doctors(db, specialization=None):
+    # Fetches all users with role="doctor", optionally filtered by specialization
     q = db.query(User).join(Role, User.role_id == Role.role_id).filter(Role.role == "doctor")
     if specialization:
         q = q.filter(User.specialization == specialization)
     return q.all()
+
 
 router = APIRouter(tags=["Doctors"])
 
@@ -28,9 +34,11 @@ def assign_doctor(data: dict = Body(...), db: Session = Depends(get_db), _=Depen
     if not reason:
         raise HTTPException(400, "Reason is required")
 
+    # Run the ML triage model to predict what specialty the patient needs
     result = predict_specialization(reason)
     spec   = result["specialization"]
 
+    # Try predicted specialty → fall back to General Physician → fall back to any doctor
     doctors = (
         _doctors(db, specialization=spec)
         or _doctors(db, specialization="General Physician")
@@ -39,7 +47,8 @@ def assign_doctor(data: dict = Body(...), db: Session = Depends(get_db), _=Depen
     if not doctors:
         raise HTTPException(404, "No doctors available")
 
-    now = datetime.utcnow()
+    # Count prescriptions this month per doctor to find the least busy one
+    now         = datetime.utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     workload = {
         d.user_id: db.query(Prescription)
@@ -47,6 +56,8 @@ def assign_doctor(data: dict = Body(...), db: Session = Depends(get_db), _=Depen
             .count()
         for d in doctors
     }
+
+    # Pick the doctor with the fewest prescriptions this month
     d = min(doctors, key=lambda doc: workload[doc.user_id])
     return {
         "doctor_id":      d.id,
@@ -59,7 +70,9 @@ def assign_doctor(data: dict = Body(...), db: Session = Depends(get_db), _=Depen
 
 @router.patch("/doctors/{doctor_id}/specialization")
 def update_specialization(doctor_id: int, data: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    doctor = db.query(User).join(Role, User.role_id == Role.role_id).filter(User.user_id == doctor_id, Role.role == "doctor").first()
+    doctor = db.query(User).join(Role, User.role_id == Role.role_id).filter(
+        User.user_id == doctor_id, Role.role == "doctor"
+    ).first()
     if not doctor:
         raise HTTPException(404, "Doctor not found")
     doctor.specialization = data.get("specialization", "")
